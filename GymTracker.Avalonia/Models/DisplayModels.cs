@@ -26,6 +26,6 @@ public class ExerciseLogDisplay : INotifyPropertyChanged
 
 public class PrDisplay
 {
-    public string ExerciseName { get; set; }
-    public string ResultText { get; set; }
+    public string ExerciseName { get; set; } = string.Empty;
+    public string ResultText { get; set; } = string.Empty;
 }

@@ -1,10 +1,38 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="GymTracker.Avalonia.App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="Surface" Color="#101114" />
+                    <SolidColorBrush x:Key="SurfaceContainer" Color="#1B1D22" />
+                    <SolidColorBrush x:Key="OnSurface" Color="#F2F3F5" />
+                    <SolidColorBrush x:Key="OnSurfaceMuted" Color="#9AA0A9" />
+                    <SolidColorBrush x:Key="Outline" Color="#2A2D33" />
+                    <SolidColorBrush x:Key="Accent" Color="#C8F23D" />
+                    <SolidColorBrush x:Key="OnAccent" Color="#11140A" />
+                    <SolidColorBrush x:Key="AccentHover" Color="#D6F76B" />
+                    <SolidColorBrush x:Key="AccentPressed" Color="#B3DB2E" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="Surface" Color="#F7F8FA" />
+                    <SolidColorBrush x:Key="SurfaceContainer" Color="#ECEEF2" />
+                    <SolidColorBrush x:Key="OnSurface" Color="#14161A" />
+                    <SolidColorBrush x:Key="OnSurfaceMuted" Color="#5B616B" />
+                    <SolidColorBrush x:Key="Outline" Color="#D9DCE2" />
+                    <SolidColorBrush x:Key="Accent" Color="#4F6A00" />
+                    <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AccentHover" Color="#617F00" />
+                    <SolidColorBrush x:Key="AccentPressed" Color="#3F5500" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>
