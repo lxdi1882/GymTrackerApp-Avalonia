@@ -8,14 +8,26 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        HomePage.StartWorkoutRequested += (_, _) => Tabs.SelectedIndex = 1;
-        WorkoutPage.WorkoutFinished += (_, _) => Tabs.SelectedIndex = 0;
+        NavHome.IsCheckedChanged += async (_, _) => { if (NavHome.IsChecked == true) await ShowAsync(0); };
+        NavWorkout.IsCheckedChanged += async (_, _) => { if (NavWorkout.IsChecked == true) await ShowAsync(1); };
+        NavHistory.IsCheckedChanged += async (_, _) => { if (NavHistory.IsChecked == true) await ShowAsync(2); };
 
-        Tabs.SelectionChanged += async (_, e) =>
+        // Setting IsChecked switches the page through the handlers above
+        HomePage.StartWorkoutRequested += (_, _) => NavWorkout.IsChecked = true;
+        WorkoutPage.WorkoutFinished += (_, _) => NavHome.IsChecked = true;
+    }
+
+    private async Task ShowAsync(int index)
+    {
+        HomePage.IsVisible = index == 0;
+        WorkoutPage.IsVisible = index == 1;
+        HistoryPage.IsVisible = index == 2;
+
+        switch (index)
         {
-            // ignore SelectionChanged bubbling up from inner controls (e.g. the exercise ComboBox)
-            if (e.Source == Tabs && Tabs.SelectedIndex == 0)
-                await HomePage.RefreshAsync();
-        };
+            case 0: await HomePage.RefreshAsync(); break;
+            case 1: await WorkoutPage.LoadAsync(); break;
+            case 2: await HistoryPage.RefreshAsync(); break;
+        }
     }
 }

@@ -39,18 +39,21 @@ public partial class WorkoutView : UserControl
         SaveButton.Click += OnSaveClick;
         _timer.Tick += (_, _) => UpdateTimer();
 
-        Loaded += async (_, _) =>
-        {
-            if (ExerciseBox.ItemsSource is null)
-            {
-                var exercises = await App.Db.GetExercisesAsync();
-                ExerciseBox.ItemsSource = exercises
-                    .OrderBy(e => e.MuscleGroup)
-                    .ThenBy(e => e.Name)
-                    .ToList();
-            }
-            Render();
-        };
+        Loaded += async (_, _) => await LoadAsync();
+    }
+
+    public async Task LoadAsync()
+    {
+        var selected = (ExerciseBox.SelectedItem as Exercise)?.Name;
+
+        var list = (await App.Db.GetExercisesAsync())
+            .OrderBy(e => e.MuscleGroup)
+            .ThenBy(e => e.Name)
+            .ToList();
+
+        ExerciseBox.ItemsSource = list;
+        ExerciseBox.SelectedItem = list.FirstOrDefault(e => e.Name == selected);
+        Render();
     }
 
     private void AddSet()

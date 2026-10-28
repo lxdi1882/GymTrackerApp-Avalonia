@@ -100,10 +100,61 @@
             <Setter Property="Background" Value="{DynamicResource Outline}" />
             <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
         </Style>
+
+        <!-- Bottom navigation item -->
+        <Style Selector="RadioButton.nav">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource OnSurfaceMuted}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="Transparent" Padding="0,12,0,14">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <Border x:Name="Pill" Width="64" Height="32" CornerRadius="16"
+                                    Background="Transparent" BorderThickness="2" BorderBrush="Transparent"
+                                    HorizontalAlignment="Center">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <BrushTransition Property="Background" Duration="0:0:0.15" />
+                                    </Transitions>
+                                </Border.Transitions>
+                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                  Foreground="{TemplateBinding Foreground}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="NavLabel" Text="{TemplateBinding Tag}" FontSize="12"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="RadioButton.nav /template/ TextBlock#NavLabel">
+            <Setter Property="Foreground" Value="{DynamicResource OnSurfaceMuted}" />
+        </Style>
+        <Style Selector="RadioButton.nav:pointerover:not(:checked) /template/ Border#Pill">
+            <Setter Property="Background" Value="{DynamicResource Outline}" />
+        </Style>
+        <Style Selector="RadioButton.nav:focus-visible /template/ Border#Pill">
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+        </Style>
+        <Style Selector="RadioButton.nav:checked">
+            <Setter Property="Foreground" Value="{DynamicResource OnNavPill}" />
+        </Style>
+        <Style Selector="RadioButton.nav:checked /template/ Border#Pill">
+            <Setter Property="Background" Value="{DynamicResource NavPill}" />
+        </Style>
+        <Style Selector="RadioButton.nav:checked /template/ TextBlock#NavLabel">
+            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
     </Application.Styles>
 
     <Application.Resources>
         <ResourceDictionary>
+            <StreamGeometry x:Key="IconHome">M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z</StreamGeometry>
+            <StreamGeometry x:Key="IconWorkout">M3,9H5V15H3Z M5,7H8V17H5Z M8,11H16V13H8Z M16,7H19V17H16Z M19,9H21V15H19Z</StreamGeometry>
+            <StreamGeometry x:Key="IconHistory">M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z</StreamGeometry>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="Surface" Color="#101114" />
@@ -116,6 +167,8 @@
                     <SolidColorBrush x:Key="AccentHover" Color="#D6F76B" />
                     <SolidColorBrush x:Key="AccentPressed" Color="#B3DB2E" />
                     <SolidColorBrush x:Key="ErrorText" Color="#FF8A80" />
+                    <SolidColorBrush x:Key="NavPill" Color="#2E3A0F" />
+                    <SolidColorBrush x:Key="OnNavPill" Color="#C8F23D" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="Surface" Color="#F7F8FA" />
@@ -128,6 +181,8 @@
                     <SolidColorBrush x:Key="AccentHover" Color="#617F00" />
                     <SolidColorBrush x:Key="AccentPressed" Color="#3F5500" />
                     <SolidColorBrush x:Key="ErrorText" Color="#B3261E" />
+                    <SolidColorBrush x:Key="NavPill" Color="#DCE8B0" />
+                    <SolidColorBrush x:Key="OnNavPill" Color="#2F4000" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>

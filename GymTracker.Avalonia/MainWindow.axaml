@@ -7,15 +7,32 @@
         Background="{DynamicResource Surface}"
         Foreground="{DynamicResource OnSurface}">
 
-    <TabControl x:Name="Tabs" Background="{DynamicResource Surface}">
-        <TabItem Header="Home">
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- Pages (kept alive so a workout in progress survives tab switches) -->
+        <Panel>
             <views:HomeView x:Name="HomePage" />
-        </TabItem>
-        <TabItem Header="Workout">
-            <views:WorkoutView x:Name="WorkoutPage" />
-        </TabItem>
-        <TabItem Header="History">
-            <views:HistoryView x:Name="HistoryPage" />
-        </TabItem>
-    </TabControl>
+            <views:WorkoutView x:Name="WorkoutPage" IsVisible="False" />
+            <views:HistoryView x:Name="HistoryPage" IsVisible="False" />
+        </Panel>
+
+        <!-- Bottom navigation bar -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceContainer}"
+                BorderBrush="{DynamicResource Outline}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,*,*">
+                <RadioButton x:Name="NavHome" Classes="nav" GroupName="nav" IsChecked="True"
+                             Tag="Home" AutomationProperties.Name="Home">
+                    <PathIcon Data="{StaticResource IconHome}" Width="24" Height="24" />
+                </RadioButton>
+                <RadioButton x:Name="NavWorkout" Grid.Column="1" Classes="nav" GroupName="nav"
+                             Tag="Workout" AutomationProperties.Name="Workout">
+                    <PathIcon Data="{StaticResource IconWorkout}" Width="24" Height="24" />
+                </RadioButton>
+                <RadioButton x:Name="NavHistory" Grid.Column="2" Classes="nav" GroupName="nav"
+                             Tag="History" AutomationProperties.Name="History">
+                    <PathIcon Data="{StaticResource IconHistory}" Width="24" Height="24" />
+                </RadioButton>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>
