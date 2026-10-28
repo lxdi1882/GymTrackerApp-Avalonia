@@ -1,13 +1,14 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GymTracker.Avalonia"
+        xmlns:views="using:GymTracker.Avalonia.Views"
         x:Class="GymTracker.Avalonia.MainWindow"
         Title="Gym Tracker"
-        Width="420" Height="700">
+        Width="420" Height="700" MinWidth="360" MinHeight="560"
+        Background="{DynamicResource Surface}">
 
-    <TabControl>
+    <TabControl Background="{DynamicResource Surface}">
         <TabItem Header="Home">
-            <local:HomeView />
+            <views:HomeView />
         </TabItem>
         <TabItem Header="History">
             <TextBlock Text="History page goes here" Margin="20" />

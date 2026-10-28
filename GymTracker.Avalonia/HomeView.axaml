@@ -1,5 +1,97 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="GymTracker.Avalonia.HomeView">
-    <TextBlock Text="Home" />
+             x:Class="GymTracker.Avalonia.Views.HomeView"
+             xmlns:models="using:GymTracker.Avalonia.Models">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{DynamicResource OnSurfaceMuted}" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="CornerRadius" Value="28" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+        </Style>
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Margin="24,28,24,24" Spacing="32" MaxWidth="640">
+
+            <!-- Header -->
+            <StackPanel Spacing="2">
+                <TextBlock x:Name="DateText" Classes="muted" />
+                <TextBlock Text="Ready to train?" FontSize="28" FontWeight="Bold" />
+            </StackPanel>
+
+            <!-- Streak: plain surface, no card -->
+            <StackPanel Orientation="Horizontal" Spacing="14">
+                <TextBlock x:Name="StreakText" Text="0" FontSize="80" FontWeight="ExtraBold"
+                           Foreground="{DynamicResource Accent}" />
+                <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,16">
+                    <TextBlock Text="day streak" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Name="StreakHint" Classes="muted" />
+                </StackPanel>
+            </StackPanel>
+
+            <Button x:Name="StartButton" Classes="primary" Content="Start workout" />
+
+            <!-- Recent PRs -->
+            <StackPanel Spacing="8">
+                <TextBlock Classes="section" Text="Personal records" />
+                <TextBlock x:Name="PrEmpty" Classes="muted" Text="No new records this week. Go set one." />
+                <ItemsControl x:Name="PrList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:PrDisplay">
+                            <Border BorderBrush="{DynamicResource Outline}" BorderThickness="0,0,0,1" Padding="0,14">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding ExerciseName}" FontSize="16" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ResultText}"
+                                               FontWeight="SemiBold" Foreground="{DynamicResource Accent}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Last workout: the one card on the page -->
+            <StackPanel Spacing="12">
+                <TextBlock Classes="section" Text="Last workout" />
+                <TextBlock x:Name="LastEmpty" Classes="muted" Text="Nothing logged yet. Start your first workout." />
+                <Border x:Name="LastCard" IsVisible="False" CornerRadius="16" Padding="20"
+                        Background="{DynamicResource SurfaceContainer}">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="LastTitle" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock x:Name="LastExercises" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock x:Name="LastMeta" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Accent}" Margin="0,6,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
