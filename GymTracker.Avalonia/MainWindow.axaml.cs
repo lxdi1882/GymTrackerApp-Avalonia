@@ -12,6 +12,7 @@ public partial class MainWindow : Window
         NavWorkout.IsCheckedChanged += async (_, _) => { if (NavWorkout.IsChecked == true) await ShowAsync(1); };
         NavHistory.IsCheckedChanged += async (_, _) => { if (NavHistory.IsChecked == true) await ShowAsync(2); };
         NavExercises.IsCheckedChanged += async (_, _) => { if (NavExercises.IsChecked == true) await ShowAsync(3); };
+        NavSettings.IsCheckedChanged += async (_, _) => { if (NavSettings.IsChecked == true) await ShowAsync(4); };
 
         // Setting IsChecked switches the page through the handlers above
         HomePage.StartWorkoutRequested += (_, _) => NavWorkout.IsChecked = true;
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
         WorkoutPage.IsVisible = index == 1;
         HistoryPage.IsVisible = index == 2;
         ExercisesPage.IsVisible = index == 3;
+        SettingsPage.IsVisible = index == 4;
 
         switch (index)
         {
@@ -31,6 +33,7 @@ public partial class MainWindow : Window
             case 1: await WorkoutPage.LoadAsync(); break;
             case 2: await HistoryPage.RefreshAsync(); break;
             case 3: await ExercisesPage.RefreshAsync(); break;
+            case 4: await SettingsPage.LoadAsync(); break;
         }
     }
 }

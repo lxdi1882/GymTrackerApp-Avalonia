@@ -184,8 +184,7 @@ public async Task SetWeeklyGoalAsync(int goal)
     await _db.InsertOrReplaceAsync(new AppSetting { Key = "WeeklyGoal", Value = goal.ToString() });
 }
  
-// Weeks start on Monday. Returns the streak (weeks in a row at/above goal)
-// and how many workouts were logged this week.
+//how many different days you trained this week
 public async Task<(int Streak, int ThisWeek)> GetWeeklyStreakAsync(int goal)
 {
     await Init();
@@ -194,7 +193,7 @@ public async Task<(int Streak, int ThisWeek)> GetWeeklyStreakAsync(int goal)
     var sessions = await _db.Table<WorkoutSession>().ToListAsync();
     var counts = sessions
         .GroupBy(s => StartOfWeek(s.Date))
-        .ToDictionary(g => g.Key, g => g.Count());
+        .ToDictionary(g => g.Key, g => g.Select(s => s.Date.Date).Distinct().Count());
  
     var week = StartOfWeek(DateTime.Today);
     counts.TryGetValue(week, out int thisWeek);

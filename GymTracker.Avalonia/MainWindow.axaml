@@ -15,12 +15,13 @@
             <views:WorkoutView x:Name="WorkoutPage" IsVisible="False" />
             <views:HistoryView x:Name="HistoryPage" IsVisible="False" />
             <views:ExercisesView x:Name="ExercisesPage" IsVisible="False" />
+            <views:SettingsView x:Name="SettingsPage" IsVisible="False" />
         </Panel>
 
         <!-- Bottom navigation bar -->
         <Border Grid.Row="1" Background="{DynamicResource SurfaceContainer}"
                 BorderBrush="{DynamicResource Outline}" BorderThickness="0,1,0,0">
-            <Grid ColumnDefinitions="*,*,*,*">
+            <Grid ColumnDefinitions="*,*,*,*,*">
                 <RadioButton x:Name="NavHome" Classes="nav" GroupName="nav" IsChecked="True"
                              Tag="Home" AutomationProperties.Name="Home">
                     <PathIcon Data="{StaticResource IconHome}" Width="24" Height="24" />
@@ -36,6 +37,10 @@
                 <RadioButton x:Name="NavExercises" Grid.Column="3" Classes="nav" GroupName="nav"
                              Tag="Exercises" AutomationProperties.Name="Exercises">
                     <PathIcon Data="{StaticResource IconExercises}" Width="24" Height="24" />
+                </RadioButton>
+                <RadioButton x:Name="NavSettings" Grid.Column="4" Classes="nav" GroupName="nav"
+                             Tag="Settings" AutomationProperties.Name="Settings">
+                    <PathIcon Data="{StaticResource IconSettings}" Width="24" Height="24" />
                 </RadioButton>
             </Grid>
         </Border>

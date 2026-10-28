@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using GymTracker.Avalonia.Models;
 
@@ -7,24 +8,15 @@ public partial class HomeView : UserControl
 {
     public event EventHandler? StartWorkoutRequested;
 
+    private int _shownGoal;
+    private int _shownFilled;
+    private int _progressToken;
+
     public HomeView()
     {
         InitializeComponent();
         StartButton.Click += (_, _) => StartWorkoutRequested?.Invoke(this, EventArgs.Empty);
-        GoalMinus.Click += async (_, _) => await ChangeGoalAsync(-1);
-        GoalPlus.Click += async (_, _) => await ChangeGoalAsync(1);
         Loaded += async (_, _) => await RefreshAsync();
-    }
-
-    private int _goal = 3;
-
-    private async Task ChangeGoalAsync(int delta)
-    {
-        int goal = Math.Clamp(_goal + delta, 1, 7);
-        if (goal == _goal) return;
-
-        await App.Db.SetWeeklyGoalAsync(goal);
-        await RefreshAsync();
     }
 
     public async Task RefreshAsync()
@@ -32,12 +24,13 @@ public partial class HomeView : UserControl
         DateText.Text = DateTime.Now.ToString("dddd, MMM d");
 
         // Weekly streak
-        _goal = await App.Db.GetWeeklyGoalAsync();
-        var (streak, thisWeek) = await App.Db.GetWeeklyStreakAsync(_goal);
+        int goal = await App.Db.GetWeeklyGoalAsync();
+        var (streak, thisWeek) = await App.Db.GetWeeklyStreakAsync(goal);
         StreakText.Text = streak.ToString();
-        GoalValue.Text = _goal.ToString();
-        StreakHint.Text = $"{thisWeek} this week, goal {_goal}";
-        GoalCheck.IsVisible = thisWeek >= _goal;
+        StreakHint.Text = $"{thisWeek} {(thisWeek == 1 ? "day" : "days")} this week, goal {goal}";
+        GoalCheck.IsVisible = thisWeek >= goal;
+        AutomationProperties.SetName(Segments, $"{thisWeek} of {goal} training days this week");
+        _ = UpdateProgressAsync(goal, thisWeek);
 
         // PRs: best per exercise, newest first
         var prs = await App.Db.GetRecentPRsAsync(7);
@@ -65,11 +58,49 @@ public partial class HomeView : UserControl
         {
             LastTitle.Text = $"{last.DayLabel}, {last.Date:ddd MMM d}";
             LastExercises.Text = string.Join(", ", last.ExerciseNames);
+
             var session = (await App.Db.GetAllSessionsAsync()).FirstOrDefault(x => x.Id == last.SessionId);
             var meta = $"{last.ExerciseNames.Count} exercises, {last.TotalSets} sets";
             if (session is { DurationSeconds: > 0 })
                 meta += $", {HistoryView.FormatDuration(session.DurationSeconds)}";
             LastMeta.Text = meta;
+        }
+    }
+
+    // Segments light up one by one, only the newly earned ones animate.
+    private async Task UpdateProgressAsync(int goal, int thisWeek)
+    {
+        int token = ++_progressToken;
+        int filled = Math.Min(thisWeek, goal);
+
+        if (goal != _shownGoal)
+        {
+            Segments.Children.Clear();
+            Segments.Columns = goal;
+            for (int i = 0; i < goal; i++)
+                Segments.Children.Add(new Border { Classes = { "seg" } });
+
+            _shownGoal = goal;
+            _shownFilled = 0;
+        }
+
+        var segs = Segments.Children.OfType<Border>().ToList();
+
+        // un-fill anything above the target (e.g. goal changed or workout removed)
+        for (int i = filled; i < segs.Count; i++)
+            segs[i].Classes.Set("filled", false);
+        _shownFilled = Math.Min(_shownFilled, filled);
+
+        // fill the new ones in sequence
+        while (_shownFilled < filled)
+        {
+            if (token != _progressToken) return;   // a newer refresh took over
+
+            await Task.Delay(110);
+            if (token != _progressToken) return;
+
+            segs[_shownFilled].Classes.Set("filled", true);
+            _shownFilled++;
         }
     }
 }
