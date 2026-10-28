@@ -21,6 +21,7 @@ public class DatabaseService
         await _db.CreateTableAsync<WorkoutSession>();
         await _db.CreateTableAsync<ExerciseLog>();
         await _db.CreateTableAsync<SetEntry>();
+        await _db.CreateTableAsync<AppSetting>();
 
     }
 
@@ -170,38 +171,55 @@ private async Task<double> GetBestWeightBeforeDateAsync(int exerciseId, DateTime
     return best;
 }
 
-public async Task<int> GetStreakAsync()
+public async Task<int> GetWeeklyGoalAsync()
 {
     await Init();
-
-    var trainingDays = (await _db.Table<WorkoutSession>().ToListAsync())
-        .Select(s => s.Date.Date)
-        .Distinct()
-        .OrderByDescending(d => d)
-        .ToList();
-
-    if (trainingDays.Count == 0)
-        return 0;
-
-    var expected = DateTime.Today;
-    if (!trainingDays.Contains(expected))
-        expected = expected.AddDays(-1); // no workout today yet, still counts from yesterday
-
+    var row = await _db.Table<AppSetting>().FirstOrDefaultAsync(s => s.Key == "WeeklyGoal");
+    return row is not null && int.TryParse(row.Value, out var g) && g > 0 ? g : 3;
+}
+ 
+public async Task SetWeeklyGoalAsync(int goal)
+{
+    await Init();
+    await _db.InsertOrReplaceAsync(new AppSetting { Key = "WeeklyGoal", Value = goal.ToString() });
+}
+ 
+// Weeks start on Monday. Returns the streak (weeks in a row at/above goal)
+// and how many workouts were logged this week.
+public async Task<(int Streak, int ThisWeek)> GetWeeklyStreakAsync(int goal)
+{
+    await Init();
+    goal = Math.Max(1, goal);
+ 
+    var sessions = await _db.Table<WorkoutSession>().ToListAsync();
+    var counts = sessions
+        .GroupBy(s => StartOfWeek(s.Date))
+        .ToDictionary(g => g.Key, g => g.Count());
+ 
+    var week = StartOfWeek(DateTime.Today);
+    counts.TryGetValue(week, out int thisWeek);
+ 
     int streak = 0;
-    foreach (var day in trainingDays)
+ 
+    // The current week only adds to the streak once the goal is hit,
+    // and never breaks it while still in progress.
+    if (thisWeek >= goal)
+        streak++;
+ 
+    week = week.AddDays(-7);
+    while (counts.TryGetValue(week, out int c) && c >= goal)
     {
-        if (day == expected)
-        {
-            streak++;
-            expected = expected.AddDays(-1);
-        }
-        else if (day < expected)
-        {
-            break;
-        }
+        streak++;
+        week = week.AddDays(-7);
     }
-
-    return streak;
+ 
+    return (streak, thisWeek);
+}
+ 
+private static DateTime StartOfWeek(DateTime date)
+{
+    int diff = (7 + (int)date.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+    return date.Date.AddDays(-diff);
 }
     
     

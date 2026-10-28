@@ -11,17 +11,33 @@ public partial class HomeView : UserControl
     {
         InitializeComponent();
         StartButton.Click += (_, _) => StartWorkoutRequested?.Invoke(this, EventArgs.Empty);
+        GoalMinus.Click += async (_, _) => await ChangeGoalAsync(-1);
+        GoalPlus.Click += async (_, _) => await ChangeGoalAsync(1);
         Loaded += async (_, _) => await RefreshAsync();
+    }
+
+    private int _goal = 3;
+
+    private async Task ChangeGoalAsync(int delta)
+    {
+        int goal = Math.Clamp(_goal + delta, 1, 7);
+        if (goal == _goal) return;
+
+        await App.Db.SetWeeklyGoalAsync(goal);
+        await RefreshAsync();
     }
 
     public async Task RefreshAsync()
     {
         DateText.Text = DateTime.Now.ToString("dddd, MMM d");
 
-        // Streak
-        int streak = await App.Db.GetStreakAsync();
+        // Weekly streak
+        _goal = await App.Db.GetWeeklyGoalAsync();
+        var (streak, thisWeek) = await App.Db.GetWeeklyStreakAsync(_goal);
         StreakText.Text = streak.ToString();
-        StreakHint.Text = streak == 0 ? "Train today to start one" : "Keep it going";
+        GoalValue.Text = _goal.ToString();
+        StreakHint.Text = $"{thisWeek} this week, goal {_goal}";
+        GoalCheck.IsVisible = thisWeek >= _goal;
 
         // PRs: best per exercise, newest first
         var prs = await App.Db.GetRecentPRsAsync(7);

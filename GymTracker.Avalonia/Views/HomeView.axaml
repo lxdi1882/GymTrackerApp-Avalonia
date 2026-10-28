@@ -12,14 +12,31 @@
                 <TextBlock Text="Ready to train?" FontSize="28" FontWeight="Bold" />
             </StackPanel>
 
-            <!-- Streak: plain surface, no card -->
-            <StackPanel Orientation="Horizontal" Spacing="14">
-                <TextBlock x:Name="StreakText" Text="0" FontSize="80" FontWeight="ExtraBold"
-                           Foreground="{DynamicResource Accent}" />
-                <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,16">
-                    <TextBlock Text="day streak" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock x:Name="StreakHint" Classes="muted" />
+            <!-- Weekly streak: plain surface, no card -->
+            <StackPanel Spacing="16">
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                    <TextBlock x:Name="StreakText" Text="0" FontSize="80" FontWeight="ExtraBold"
+                               Foreground="{DynamicResource Accent}" />
+                    <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,16">
+                        <TextBlock Text="week streak" FontSize="18" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock x:Name="StreakHint" Classes="muted" VerticalAlignment="Center" />
+                            <PathIcon x:Name="GoalCheck" IsVisible="False" Width="16" Height="16"
+                                      Foreground="{DynamicResource Accent}"
+                                      Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
+
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                    <TextBlock Text="Weekly goal" Classes="muted" VerticalAlignment="Center" />
+                    <Button x:Name="GoalMinus" Grid.Column="1" Classes="icon" Content="−"
+                            AutomationProperties.Name="Decrease weekly goal" />
+                    <TextBlock x:Name="GoalValue" Grid.Column="2" Text="3" FontSize="16" FontWeight="SemiBold"
+                               Width="28" TextAlignment="Center" VerticalAlignment="Center" />
+                    <Button x:Name="GoalPlus" Grid.Column="3" Classes="icon" Content="+"
+                            AutomationProperties.Name="Increase weekly goal" />
+                </Grid>
             </StackPanel>
 
             <Button x:Name="StartButton" Classes="primary" Content="Start workout" />
