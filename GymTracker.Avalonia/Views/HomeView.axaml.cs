@@ -49,7 +49,11 @@ public partial class HomeView : UserControl
         {
             LastTitle.Text = $"{last.DayLabel}, {last.Date:ddd MMM d}";
             LastExercises.Text = string.Join(", ", last.ExerciseNames);
-            LastMeta.Text = $"{last.ExerciseNames.Count} exercises, {last.TotalSets} sets";
+            var session = (await App.Db.GetAllSessionsAsync()).FirstOrDefault(x => x.Id == last.SessionId);
+            var meta = $"{last.ExerciseNames.Count} exercises, {last.TotalSets} sets";
+            if (session is { DurationSeconds: > 0 })
+                meta += $", {HistoryView.FormatDuration(session.DurationSeconds)}";
+            LastMeta.Text = meta;
         }
     }
 }

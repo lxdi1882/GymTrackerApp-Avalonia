@@ -115,7 +115,7 @@ public partial class HistoryView : UserControl
             ex.IsExpanded = !ex.IsExpanded;
     }
 
-    private static string FormatDuration(int seconds)
+    public static string FormatDuration(int seconds)
     {
         var t = TimeSpan.FromSeconds(seconds);
         if (t.TotalHours >= 1) return $"{(int)t.TotalHours}h {t.Minutes:00}m";
