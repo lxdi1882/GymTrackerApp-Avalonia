@@ -107,9 +107,11 @@ public partial class WorkoutView : UserControl
 
     private async void OnSaveClick(object? sender, RoutedEventArgs e)
     {
+        int seconds = _start is null ? 0 : (int)(DateTime.Now - _start.Value).TotalSeconds;
+
         try
         {
-            await App.Workouts.FinishWorkoutAsync();
+            await App.Workouts.FinishWorkoutAsync(seconds);
         }
         catch
         {

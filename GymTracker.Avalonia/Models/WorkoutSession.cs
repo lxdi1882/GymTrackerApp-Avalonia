@@ -12,4 +12,5 @@ public class WorkoutSession
     public int TrainingDayId { get; set; }
     public DateTime Date{ get; set; }
     //public List<ExerciseEntry> Exercises{ get; set; }
+    public int DurationSeconds { get; set; }
 }

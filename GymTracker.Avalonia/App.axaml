@@ -81,6 +81,25 @@
             <Setter Property="Background" Value="{DynamicResource Outline}" />
             <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
         </Style>
+
+        <!-- Flat button (tappable rows / accordion headers) -->
+        <Style Selector="Button.flat">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.flat:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Outline}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+        </Style>
+        <Style Selector="Button.flat:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Outline}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+        </Style>
     </Application.Styles>
 
     <Application.Resources>

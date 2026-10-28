@@ -15,7 +15,7 @@
             <views:WorkoutView x:Name="WorkoutPage" />
         </TabItem>
         <TabItem Header="History">
-            <TextBlock Text="History page goes here" Margin="20" />
+            <views:HistoryView x:Name="HistoryPage" />
         </TabItem>
     </TabControl>
 </Window>

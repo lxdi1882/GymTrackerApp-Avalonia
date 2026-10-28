@@ -73,12 +73,13 @@ public void RemoveSet(string exerciseName, SetEntry set)
 }
  
 
-    public async Task<int> FinishWorkoutAsync()
+    public async Task<int> FinishWorkoutAsync(int durationSeconds = 0)
+{
+    var session = new WorkoutSession
     {
-        var session = new WorkoutSession
-        {
-            Date = DateTime.Now
-        };
+        Date = DateTime.Now,
+        DurationSeconds = durationSeconds
+    };
 
         await _db.AddWorkoutSessionAsync(session);
 
