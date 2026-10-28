@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GymTracker.Avalonia.Views"
+             xmlns:models="using:GymTracker.Avalonia.Models"
+             x:Class="GymTracker.Avalonia.Views.WorkoutView">
+
+    <ScrollViewer>
+        <StackPanel Margin="24,28,24,24" Spacing="28" MaxWidth="640">
+
+            <!-- Header -->
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                    <TextBlock x:Name="TimerText" Classes="muted" Text="00:00" />
+                    <TextBlock Text="Workout" FontSize="28" FontWeight="Bold" />
+                </StackPanel>
+                <Button x:Name="FinishButton" Grid.Column="1" Classes="tonal" Content="Finish"
+                        VerticalAlignment="Center" IsEnabled="False" />
+            </Grid>
+
+            <!-- Inline finish confirmation -->
+            <Border x:Name="ConfirmPanel" IsVisible="False" CornerRadius="16" Padding="20"
+                    Background="{DynamicResource SurfaceContainer}">
+                <StackPanel Spacing="16">
+                    <TextBlock x:Name="ConfirmText" FontSize="16" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="*,12,*">
+                        <Button x:Name="CancelButton" Classes="tonal" Content="Keep going"
+                                HorizontalAlignment="Stretch" Background="{DynamicResource Outline}" />
+                        <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" Content="Save workout"
+                                Height="44" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Add set -->
+            <StackPanel Spacing="12">
+                <TextBlock Classes="section" Text="Add set" />
+
+                <ComboBox x:Name="ExerciseBox" PlaceholderText="Choose exercise"
+                          HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="12">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:Exercise">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding Name}" />
+                                <TextBlock Text="{Binding SubTarget}" Classes="muted" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Grid ColumnDefinitions="*,12,*">
+                    <TextBox x:Name="WeightBox" Watermark="Weight (kg)" MinHeight="48" CornerRadius="12"
+                             VerticalContentAlignment="Center" />
+                    <TextBox x:Name="RepsBox" Grid.Column="2" Watermark="Reps" MinHeight="48" CornerRadius="12"
+                             VerticalContentAlignment="Center" />
+                </Grid>
+
+                <TextBlock x:Name="ErrorText" IsVisible="False" FontSize="14"
+                           Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" />
+
+                <Button x:Name="AddSetButton" Classes="primary" Content="Add set" />
+            </StackPanel>
+
+            <!-- This session -->
+            <StackPanel Spacing="12">
+                <TextBlock Classes="section" Text="This session" />
+                <TextBlock x:Name="EmptyText" Classes="muted" Text="Add your first set to get started." />
+
+                <ItemsControl x:Name="BlockList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="12" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ExerciseBlock">
+                            <Border CornerRadius="16" Padding="20,16" Background="{DynamicResource SurfaceContainer}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" />
+                                    <ItemsControl ItemsSource="{Binding Sets}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:SetRow">
+                                                <Grid ColumnDefinitions="32,*,Auto" MinHeight="36">
+                                                    <TextBlock Text="{Binding Number}" Classes="muted"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Text}"
+                                                               VerticalAlignment="Center" />
+                                                    <Button Grid.Column="2" Classes="icon" Content="×"
+                                                            Click="OnDeleteSet"
+                                                            AutomationProperties.Name="Delete set" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -4,11 +4,15 @@
         x:Class="GymTracker.Avalonia.MainWindow"
         Title="Gym Tracker"
         Width="420" Height="700" MinWidth="360" MinHeight="560"
-        Background="{DynamicResource Surface}">
+        Background="{DynamicResource Surface}"
+        Foreground="{DynamicResource OnSurface}">
 
-    <TabControl Background="{DynamicResource Surface}">
+    <TabControl x:Name="Tabs" Background="{DynamicResource Surface}">
         <TabItem Header="Home">
-            <views:HomeView />
+            <views:HomeView x:Name="HomePage" />
+        </TabItem>
+        <TabItem Header="Workout">
+            <views:WorkoutView x:Name="WorkoutPage" />
         </TabItem>
         <TabItem Header="History">
             <TextBlock Text="History page goes here" Margin="20" />

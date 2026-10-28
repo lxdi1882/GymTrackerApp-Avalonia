@@ -1,41 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="GymTracker.Avalonia.Views.HomeView"
-             xmlns:models="using:GymTracker.Avalonia.Models">
-
-    <UserControl.Styles>
-        <Style Selector="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
-        </Style>
-        <Style Selector="TextBlock.muted">
-            <Setter Property="Foreground" Value="{DynamicResource OnSurfaceMuted}" />
-            <Setter Property="FontSize" Value="14" />
-        </Style>
-        <Style Selector="TextBlock.section">
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-
-        <Style Selector="Button.primary">
-            <Setter Property="Background" Value="{DynamicResource Accent}" />
-            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Height" Value="56" />
-            <Setter Property="CornerRadius" Value="28" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AccentHover}" />
-            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
-        </Style>
-        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
-            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
-        </Style>
-    </UserControl.Styles>
+             xmlns:models="using:GymTracker.Avalonia.Models"
+             x:Class="GymTracker.Avalonia.Views.HomeView">
 
     <ScrollViewer>
         <StackPanel Margin="24,28,24,24" Spacing="32" MaxWidth="640">

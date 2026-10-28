@@ -58,6 +58,21 @@ public class WorkoutService
         return true;
     }
 
+
+    public IReadOnlyList<ExerciseEntry> GetInProgress() => workoutInProgress.Values.ToList();
+ 
+public void RemoveSet(string exerciseName, SetEntry set)
+{
+    if (!workoutInProgress.TryGetValue(exerciseName, out var entry))
+        return;
+ 
+    entry.Sets.Remove(set);
+ 
+    if (entry.Sets.Count == 0)
+        workoutInProgress.Remove(exerciseName);
+}
+ 
+
     public async Task<int> FinishWorkoutAsync()
     {
         var session = new WorkoutSession
