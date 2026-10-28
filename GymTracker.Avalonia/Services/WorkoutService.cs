@@ -33,30 +33,27 @@ public class WorkoutService
         return summary;
     }
     
-    public bool AddSet(string selectedName, double weight, int reps)
+ public bool AddSet(Exercise exercise, double weight, int reps)
+{
+    var newSet = new SetEntry
     {
-        var newSet = new SetEntry
+        Weight = weight,
+        Reps = reps
+    };
+
+    if (!workoutInProgress.ContainsKey(exercise.Name))
+    {
+        workoutInProgress[exercise.Name] = new ExerciseEntry
         {
-            Weight = weight,
-            Reps = reps
+            Exercise = exercise,
+            Sets = new List<SetEntry>()
         };
-
-        if (!workoutInProgress.ContainsKey(selectedName))
-        {
-            var exercise = ExerciseLibrary.All
-                .First(ex => ex.Name == selectedName);
-
-            workoutInProgress[selectedName] = new ExerciseEntry
-            {
-                Exercise = exercise,
-                Sets = new List<SetEntry>()
-            };
-        }
-        
-        workoutInProgress[selectedName].Sets.Add(newSet);
-        
-        return true;
     }
+
+    workoutInProgress[exercise.Name].Sets.Add(newSet);
+
+    return true;
+}
 
 
     public IReadOnlyList<ExerciseEntry> GetInProgress() => workoutInProgress.Values.ToList();

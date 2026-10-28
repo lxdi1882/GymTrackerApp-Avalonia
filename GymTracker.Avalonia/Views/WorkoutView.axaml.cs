@@ -77,7 +77,7 @@ public partial class WorkoutView : UserControl
         }
 
         ErrorText.IsVisible = false;
-        App.Workouts.AddSet(exercise.Name, weight, reps);
+        App.Workouts.AddSet(exercise, weight, reps);
 
         if (_start is null)
         {

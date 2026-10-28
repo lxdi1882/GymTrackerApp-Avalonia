@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GymTracker.Avalonia.Views"
+             xmlns:models="using:GymTracker.Avalonia.Models"
+             x:Class="GymTracker.Avalonia.Views.ExercisesView">
+
+    <ScrollViewer>
+        <StackPanel Margin="24,28,24,24" Spacing="24" MaxWidth="640">
+
+            <!-- Header -->
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                    <TextBlock x:Name="CountText" Classes="muted" />
+                    <TextBlock Text="Exercises" FontSize="28" FontWeight="Bold" />
+                </StackPanel>
+                <Button x:Name="AddButton" Grid.Column="1" Classes="tonal" Content="Add new"
+                        VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- New exercise form -->
+            <Border x:Name="FormPanel" IsVisible="False" CornerRadius="16" Padding="20"
+                    Background="{DynamicResource SurfaceContainer}">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section" Text="New exercise" />
+                    <TextBox x:Name="NameBox" Watermark="Name" MinHeight="48" CornerRadius="12"
+                             VerticalContentAlignment="Center" />
+                    <ComboBox x:Name="GroupBox" PlaceholderText="Muscle group"
+                              HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="12" />
+                    <TextBox x:Name="SubTargetBox" Watermark="Target, like Upper or Lats (optional)"
+                             MinHeight="48" CornerRadius="12" VerticalContentAlignment="Center" />
+                    <TextBlock x:Name="FormError" IsVisible="False" FontSize="14"
+                               Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="*,12,*">
+                        <Button x:Name="CancelButton" Classes="tonal" Content="Cancel"
+                                HorizontalAlignment="Stretch" Background="{DynamicResource Outline}" />
+                        <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" Content="Save exercise"
+                                Height="44" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Search -->
+            <TextBox x:Name="SearchBox" Watermark="Search exercises" MinHeight="48" CornerRadius="12"
+                     VerticalContentAlignment="Center" />
+
+            <TextBlock x:Name="EmptyText" Classes="muted" IsVisible="False"
+                       Text="No exercises match your search." />
+
+            <!-- Grouped list -->
+            <ItemsControl x:Name="GroupList">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="24" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ExerciseGroup">
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding Name}" Classes="section"
+                                           Foreground="{DynamicResource Accent}" />
+                                <TextBlock Grid.Column="1" Text="{Binding CountText}" Classes="muted"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Exercise">
+                                        <Border BorderBrush="{DynamicResource Outline}"
+                                                BorderThickness="0,0,0,1" Padding="0,12">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="{Binding Name}" FontSize="16"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Grid.Column="1" Text="{Binding SubTarget}"
+                                                           Classes="muted" Margin="12,0,0,0"
+                                                           VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

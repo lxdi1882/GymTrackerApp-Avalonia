@@ -155,6 +155,7 @@
             <StreamGeometry x:Key="IconHome">M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z</StreamGeometry>
             <StreamGeometry x:Key="IconWorkout">M3,9H5V15H3Z M5,7H8V17H5Z M8,11H16V13H8Z M16,7H19V17H16Z M19,9H21V15H19Z</StreamGeometry>
             <StreamGeometry x:Key="IconHistory">M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z</StreamGeometry>
+            <StreamGeometry x:Key="IconExercises">M3,5H6V8H3Z M8,5H21V8H8Z M3,10.5H6V13.5H3Z M8,10.5H21V13.5H8Z M3,16H6V19H3Z M8,16H21V19H8Z</StreamGeometry>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="Surface" Color="#101114" />
