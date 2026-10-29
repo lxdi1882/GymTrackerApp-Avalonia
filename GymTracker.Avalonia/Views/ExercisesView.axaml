@@ -2,91 +2,98 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:GymTracker.Avalonia.Views"
              xmlns:models="using:GymTracker.Avalonia.Models"
+             xmlns:m3c="using:Material3.Avalonia.Controls"
              x:Class="GymTracker.Avalonia.Views.ExercisesView">
 
-    <ScrollViewer x:Name="Scroller">
-        <StackPanel Margin="24,28,24,24" Spacing="24" MaxWidth="640">
+    <!-- Scrim and DialogPane are in-place overlays: they cover this shared Panel -->
+    <Panel>
 
-            <!-- Header -->
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Spacing="2">
-                    <TextBlock x:Name="CountText" Classes="muted" />
-                    <TextBlock Text="Exercises" FontSize="28" FontWeight="Bold" />
+        <ScrollViewer x:Name="Scroller">
+            <StackPanel Margin="24,28,24,24" Spacing="24" MaxWidth="640">
+
+                <!-- Header -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="CountText" Classes="muted" />
+                        <TextBlock Text="Exercises" Classes="headline-medium" />
+                    </StackPanel>
+                    <Button x:Name="AddButton" Grid.Column="1" Classes="tonal" Content="Add new"
+                            VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- Search -->
+                <TextBox x:Name="SearchBox" PlaceholderText="Search exercises" />
+
+                <TextBlock x:Name="EmptyText" Classes="muted" IsVisible="False"
+                           Text="No exercises match your search." />
+
+                <!-- Grouped list -->
+                <ItemsControl x:Name="GroupList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="24" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ExerciseGroup">
+                            <StackPanel Spacing="4">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding Name}" Classes="section"
+                                               Foreground="{DynamicResource Md3PrimaryBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding CountText}" Classes="muted"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:Exercise">
+                                            <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+                                                    BorderThickness="0,0,0,1">
+                                                <Button Classes="text row" Click="OnEditExercise"
+                                                        AutomationProperties.Name="{Binding Name}">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Text="{Binding Name}" FontSize="16"
+                                                                   TextWrapping="Wrap" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding SubTarget}"
+                                                                   Classes="muted" Margin="12,0,0,0"
+                                                                   VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Button>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Add / edit dialog (M3 DialogPane over an M3 Scrim) -->
+        <m3c:Scrim x:Name="Scrim" IsOpen="False" />
+
+        <m3c:DialogPane x:Name="FormPanel" Classes="dialog" Title="New exercise"
+                        IsVisible="False" Margin="24" MaxWidth="440"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <StackPanel Spacing="12">
+                <TextBox x:Name="NameBox" PlaceholderText="Name" />
+                <ComboBox x:Name="GroupBox" PlaceholderText="Muscle group"
+                          HorizontalAlignment="Stretch" />
+                <TextBox x:Name="SubTargetBox" PlaceholderText="Target, like Upper or Lats (optional)" />
+                <TextBlock x:Name="FormError" IsVisible="False" FontSize="14"
+                           Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
+                <Button x:Name="DeleteButton" Classes="text danger" Content="Delete exercise"
+                        IsVisible="False" HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <m3c:DialogPane.Buttons>
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button x:Name="CancelButton" Classes="text" Content="Cancel" />
+                    <Button x:Name="SaveButton" Classes="text" Content="Save exercise" />
                 </StackPanel>
-                <Button x:Name="AddButton" Grid.Column="1" Classes="tonal" Content="Add new"
-                        VerticalAlignment="Center" />
-            </Grid>
+            </m3c:DialogPane.Buttons>
+        </m3c:DialogPane>
 
-            <!-- Add / edit form -->
-            <Border x:Name="FormPanel" IsVisible="False" CornerRadius="16" Padding="20"
-                    Background="{DynamicResource SurfaceContainer}">
-                <StackPanel Spacing="12">
-                    <TextBlock x:Name="FormTitle" Classes="section" Text="New exercise" />
-                    <TextBox x:Name="NameBox" Watermark="Name" MinHeight="48" CornerRadius="12"
-                             VerticalContentAlignment="Center" />
-                    <ComboBox x:Name="GroupBox" PlaceholderText="Muscle group"
-                              HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="12" />
-                    <TextBox x:Name="SubTargetBox" Watermark="Target, like Upper or Lats (optional)"
-                             MinHeight="48" CornerRadius="12" VerticalContentAlignment="Center" />
-                    <TextBlock x:Name="FormError" IsVisible="False" FontSize="14"
-                               Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" />
-                    <Grid ColumnDefinitions="*,12,*">
-                        <Button x:Name="CancelButton" Classes="tonal" Content="Cancel"
-                                HorizontalAlignment="Stretch" Background="{DynamicResource Outline}" />
-                        <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" Content="Save exercise"
-                                Height="44" />
-                    </Grid>
-                    <Button x:Name="DeleteButton" Classes="danger" Content="Delete exercise" IsVisible="False" />
-                </StackPanel>
-            </Border>
-
-            <!-- Search -->
-            <TextBox x:Name="SearchBox" Watermark="Search exercises" MinHeight="48" CornerRadius="12"
-                     VerticalContentAlignment="Center" />
-
-            <TextBlock x:Name="EmptyText" Classes="muted" IsVisible="False"
-                       Text="No exercises match your search." />
-
-            <!-- Grouped list -->
-            <ItemsControl x:Name="GroupList">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Spacing="24" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ExerciseGroup">
-                        <StackPanel Spacing="4">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="{Binding Name}" Classes="section"
-                                           Foreground="{DynamicResource Accent}" />
-                                <TextBlock Grid.Column="1" Text="{Binding CountText}" Classes="muted"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                            <ItemsControl ItemsSource="{Binding Items}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="models:Exercise">
-                                        <Border BorderBrush="{DynamicResource Outline}"
-                                                BorderThickness="0,0,0,1">
-                                            <Button Classes="flat" Padding="0,12" Click="OnEditExercise"
-                                                    AutomationProperties.Name="{Binding Name}">
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <TextBlock Text="{Binding Name}" FontSize="16"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding SubTarget}"
-                                                               Classes="muted" Margin="12,0,0,0"
-                                                               VerticalAlignment="Center" />
-                                                </Grid>
-                                            </Button>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-        </StackPanel>
-    </ScrollViewer>
+    </Panel>
 </UserControl>

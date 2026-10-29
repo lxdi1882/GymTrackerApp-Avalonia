@@ -2,6 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:GymTracker.Avalonia.Views"
              xmlns:models="using:GymTracker.Avalonia.Models"
+             xmlns:m3c="using:Material3.Avalonia.Controls"
+             xmlns:icons="using:Material3.Avalonia.Icons"
              x:Class="GymTracker.Avalonia.Views.WorkoutView">
 
     <ScrollViewer>
@@ -11,7 +13,7 @@
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="TimerText" Classes="muted" Text="00:00" />
-                    <TextBlock Text="Workout" FontSize="28" FontWeight="Bold" />
+                    <TextBlock Text="Workout" Classes="headline-medium" />
                 </StackPanel>
                 <Button x:Name="FinishButton" Grid.Column="1" Classes="tonal" Content="Finish"
                         VerticalAlignment="Center" IsEnabled="False" />
@@ -19,14 +21,14 @@
 
             <!-- Inline finish confirmation -->
             <Border x:Name="ConfirmPanel" IsVisible="False" CornerRadius="16" Padding="20"
-                    Background="{DynamicResource SurfaceContainer}">
+                    Background="{DynamicResource Md3SurfaceContainerBrush}">
                 <StackPanel Spacing="16">
                     <TextBlock x:Name="ConfirmText" FontSize="16" FontWeight="SemiBold" />
                     <Grid ColumnDefinitions="*,12,*">
                         <Button x:Name="CancelButton" Classes="tonal" Content="Keep going"
-                                HorizontalAlignment="Stretch" Background="{DynamicResource Outline}" />
-                        <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" Content="Save workout"
-                                Height="44" />
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                        <Button x:Name="SaveButton" Grid.Column="2" Content="Save workout"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     </Grid>
                 </StackPanel>
             </Border>
@@ -36,7 +38,7 @@
                 <TextBlock Classes="section" Text="Add set" />
 
                 <ComboBox x:Name="ExerciseBox" PlaceholderText="Choose exercise"
-                          HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="12">
+                          HorizontalAlignment="Stretch">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:Exercise">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -48,16 +50,15 @@
                 </ComboBox>
 
                 <Grid ColumnDefinitions="*,12,*">
-                    <TextBox x:Name="WeightBox" Watermark="Weight (kg)" MinHeight="48" CornerRadius="12"
-                             VerticalContentAlignment="Center" />
-                    <TextBox x:Name="RepsBox" Grid.Column="2" Watermark="Reps" MinHeight="48" CornerRadius="12"
-                             VerticalContentAlignment="Center" />
+                    <TextBox x:Name="WeightBox" PlaceholderText="Weight (kg)" />
+                    <TextBox x:Name="RepsBox" Grid.Column="2" PlaceholderText="Reps" />
                 </Grid>
 
                 <TextBlock x:Name="ErrorText" IsVisible="False" FontSize="14"
-                           Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" />
+                           Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
 
-                <Button x:Name="AddSetButton" Classes="primary" Content="Add set" />
+                <Button x:Name="AddSetButton" Content="Add set" Height="56" FontSize="16"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
             </StackPanel>
 
             <!-- This session -->
@@ -73,20 +74,23 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ExerciseBlock">
-                            <Border CornerRadius="16" Padding="20,16" Background="{DynamicResource SurfaceContainer}">
+                            <Border CornerRadius="16" Padding="20,16"
+                                    Background="{DynamicResource Md3SurfaceContainerBrush}">
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" />
                                     <ItemsControl ItemsSource="{Binding Sets}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:SetRow">
-                                                <Grid ColumnDefinitions="32,*,Auto" MinHeight="36">
+                                                <Grid ColumnDefinitions="32,*,Auto" MinHeight="40">
                                                     <TextBlock Text="{Binding Number}" Classes="muted"
                                                                VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="1" Text="{Binding Text}"
                                                                VerticalAlignment="Center" />
-                                                    <Button Grid.Column="2" Classes="icon" Content="×"
-                                                            Click="OnDeleteSet"
-                                                            AutomationProperties.Name="Delete set" />
+                                                    <m3c:IconButton Grid.Column="2" Variant="Standard"
+                                                                    Click="OnDeleteSet"
+                                                                    AutomationProperties.Name="Delete set">
+                                                        <PathIcon Data="{x:Static icons:MaterialSymbols.Close}" />
+                                                    </m3c:IconButton>
                                                 </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

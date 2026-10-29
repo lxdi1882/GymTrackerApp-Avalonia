@@ -7,8 +7,8 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.4" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+   <PackageReference Include="Material3.Avalonia" Version="0.2.0-preview.1" />
     <PackageReference Include="sqlite-net-pcl" Version="1.11.285" />
   </ItemGroup>
 </Project>

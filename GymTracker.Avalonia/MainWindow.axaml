@@ -4,7 +4,7 @@
         x:Class="GymTracker.Avalonia.MainWindow"
         Title="Gym Tracker"
         Width="420" Height="700" MinWidth="360" MinHeight="560"
-        Background="{DynamicResource Surface}">
+        Background="{DynamicResource Md3SurfaceBrush}">
 
     <local:MainView />
 </Window>

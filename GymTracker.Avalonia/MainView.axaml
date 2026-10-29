@@ -1,46 +1,60 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="using:GymTracker.Avalonia.Views"
+             xmlns:m3c="using:Material3.Avalonia.Controls"
+             xmlns:icons="using:Material3.Avalonia.Icons"
              x:Class="GymTracker.Avalonia.MainView"
-             Background="{DynamicResource Surface}"
-             Foreground="{DynamicResource OnSurface}">
+             Background="{DynamicResource Md3SurfaceBrush}"
+             Foreground="{DynamicResource Md3OnSurfaceBrush}">
 
     <Grid RowDefinitions="*,Auto">
 
         <!-- Pages (kept alive so a workout in progress survives tab switches) -->
         <Panel>
-            <views:HomeView x:Name="HomePage" />
-            <views:WorkoutView x:Name="WorkoutPage" IsVisible="False" />
-            <views:HistoryView x:Name="HistoryPage" IsVisible="False" />
-            <views:ExercisesView x:Name="ExercisesPage" IsVisible="False" />
-            <views:SettingsView x:Name="SettingsPage" IsVisible="False" />
+            <Border x:Name="HomeHost" Classes="page off">
+                <views:HomeView x:Name="HomePage" />
+            </Border>
+            <Border x:Name="WorkoutHost" Classes="page off" IsVisible="False">
+                <views:WorkoutView x:Name="WorkoutPage" />
+            </Border>
+            <Border x:Name="HistoryHost" Classes="page off" IsVisible="False">
+                <views:HistoryView x:Name="HistoryPage" />
+            </Border>
+            <Border x:Name="ExercisesHost" Classes="page off" IsVisible="False">
+                <views:ExercisesView x:Name="ExercisesPage" />
+            </Border>
+            <Border x:Name="SettingsHost" Classes="page off" IsVisible="False">
+                <views:SettingsView x:Name="SettingsPage" />
+            </Border>
         </Panel>
 
-        <!-- Bottom navigation bar -->
-        <Border Grid.Row="1" Background="{DynamicResource SurfaceContainer}"
-                BorderBrush="{DynamicResource Outline}" BorderThickness="0,1,0,0">
-            <Grid ColumnDefinitions="*,*,*,*,*">
-                <RadioButton x:Name="NavHome" Classes="nav" GroupName="nav" IsChecked="True"
-                             Tag="Home" AutomationProperties.Name="Home">
-                    <PathIcon Data="{StaticResource IconHome}" Width="24" Height="24" />
-                </RadioButton>
-                <RadioButton x:Name="NavWorkout" Grid.Column="1" Classes="nav" GroupName="nav"
-                             Tag="Workout" AutomationProperties.Name="Workout">
-                    <PathIcon Data="{StaticResource IconWorkout}" Width="24" Height="24" />
-                </RadioButton>
-                <RadioButton x:Name="NavHistory" Grid.Column="2" Classes="nav" GroupName="nav"
-                             Tag="History" AutomationProperties.Name="History">
-                    <PathIcon Data="{StaticResource IconHistory}" Width="24" Height="24" />
-                </RadioButton>
-                <RadioButton x:Name="NavExercises" Grid.Column="3" Classes="nav" GroupName="nav"
-                             Tag="Exercises" AutomationProperties.Name="Exercises">
-                    <PathIcon Data="{StaticResource IconExercises}" Width="24" Height="24" />
-                </RadioButton>
-                <RadioButton x:Name="NavSettings" Grid.Column="4" Classes="nav" GroupName="nav"
-                             Tag="Settings" AutomationProperties.Name="Settings">
-                    <PathIcon Data="{StaticResource IconSettings}" Width="24" Height="24" />
-                </RadioButton>
-            </Grid>
-        </Border>
+        <!-- Material 3 bottom navigation bar -->
+        <m3c:NavigationBar x:Name="NavBar" Grid.Row="1" SelectedIndex="0">
+            <m3c:NavigationBarItem Label="Home" AutomationProperties.Name="Home">
+                <m3c:NavigationBarItem.Icon>
+                    <PathIcon Data="{x:Static icons:MaterialSymbols.Home}" />
+                </m3c:NavigationBarItem.Icon>
+            </m3c:NavigationBarItem>
+            <m3c:NavigationBarItem Label="Workout" AutomationProperties.Name="Workout">
+                <m3c:NavigationBarItem.Icon>
+                    <PathIcon Data="{x:Static icons:MaterialSymbols.FitnessCenter}" />
+                </m3c:NavigationBarItem.Icon>
+            </m3c:NavigationBarItem>
+            <m3c:NavigationBarItem Label="History" AutomationProperties.Name="History">
+                <m3c:NavigationBarItem.Icon>
+                    <PathIcon Data="{x:Static icons:MaterialSymbols.History}" />
+                </m3c:NavigationBarItem.Icon>
+            </m3c:NavigationBarItem>
+            <m3c:NavigationBarItem Label="Exercises" AutomationProperties.Name="Exercises">
+                <m3c:NavigationBarItem.Icon>
+                    <PathIcon Data="{x:Static icons:MaterialSymbols.FormatListBulleted}" />
+                </m3c:NavigationBarItem.Icon>
+            </m3c:NavigationBarItem>
+            <m3c:NavigationBarItem Label="Settings" AutomationProperties.Name="Settings">
+                <m3c:NavigationBarItem.Icon>
+                    <PathIcon Data="{x:Static icons:MaterialSymbols.Settings}" />
+                </m3c:NavigationBarItem.Icon>
+            </m3c:NavigationBarItem>
+        </m3c:NavigationBar>
     </Grid>
 </UserControl>

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using GymTracker.Avalonia.Models;
 
@@ -20,6 +21,7 @@ public partial class ExercisesView : UserControl
     private List<string> _groupChoices = new();
     private Exercise? _editing;          // null = adding a new exercise
     private bool _confirmDelete;
+    private bool _closing;
 
     public ExercisesView()
     {
@@ -27,9 +29,20 @@ public partial class ExercisesView : UserControl
 
         SearchBox.TextChanged += (_, _) => Render();
         AddButton.Click += (_, _) => OpenForm(null);
-        CancelButton.Click += (_, _) => CloseForm();
+        CancelButton.Click += async (_, _) => await CloseFormAsync();
         SaveButton.Click += async (_, _) => await SaveAsync();
         DeleteButton.Click += async (_, _) => await DeleteAsync();
+
+        // tap the dimmed area (Scrim.Dismissed) or press Esc to dismiss
+        Scrim.Dismissed += async (_, _) => await CloseFormAsync();
+        KeyDown += async (_, e) =>
+        {
+            if (e.Key == Key.Escape && FormPanel.IsVisible)
+            {
+                e.Handled = true;
+                await CloseFormAsync();
+            }
+        };
 
         Loaded += async (_, _) => await RefreshAsync();
     }
@@ -84,12 +97,14 @@ public partial class ExercisesView : UserControl
             OpenForm(ex);
     }
 
-    private void OpenForm(Exercise? exercise)
+    private async void OpenForm(Exercise? exercise)
     {
+        if (_closing) return;
+
         _editing = exercise;
         _confirmDelete = false;
 
-        FormTitle.Text = exercise is null ? "New exercise" : "Edit exercise";
+        FormPanel.Title = exercise is null ? "New exercise" : "Edit exercise";
         SaveButton.Content = exercise is null ? "Save exercise" : "Save changes";
         DeleteButton.Content = "Delete exercise";
         DeleteButton.IsVisible = exercise is not null;
@@ -101,16 +116,34 @@ public partial class ExercisesView : UserControl
             : _groupChoices.FirstOrDefault(g => g.Equals(exercise.MuscleGroup, StringComparison.OrdinalIgnoreCase));
 
         FormError.IsVisible = false;
+
+        // start in the "off" pose, show it, then drop "off" a frame later so the transition plays
+        FormPanel.Classes.Set("off", true);
         FormPanel.IsVisible = true;
-        Scroller.Offset = new Vector(0, 0);   // the form sits at the top, so bring it into view
+        Scrim.IsOpen = true;
         NameBox.Focus();
+
+        await Task.Delay(16);
+        FormPanel.Classes.Set("off", false);
     }
 
-    private void CloseForm()
+    // plays the exit animation, then hides the dialog
+    private async Task CloseFormAsync()
     {
-        FormPanel.IsVisible = false;
-        _editing = null;
+        if (!FormPanel.IsVisible || _closing) return;
+
+        _closing = true;
         _confirmDelete = false;
+
+        Scrim.IsOpen = false;
+        FormPanel.Classes.Set("off", true);   // transitions back out
+
+        await Task.Delay(230);   // a bit longer than the 0.22s transition in App.axaml
+
+        FormPanel.IsVisible = false;
+
+        _editing = null;
+        _closing = false;
     }
 
     private async Task SaveAsync()
@@ -166,7 +199,7 @@ public partial class ExercisesView : UserControl
                 await App.Db.UpdateExerciseAsync(_editing);
             }
 
-            CloseForm();
+            await CloseFormAsync();
             await RefreshAsync();
         }
         catch
@@ -211,7 +244,7 @@ public partial class ExercisesView : UserControl
         try
         {
             await App.Db.DeleteExerciseAsync(_editing);
-            CloseForm();
+            await CloseFormAsync();
             await RefreshAsync();
         }
         catch

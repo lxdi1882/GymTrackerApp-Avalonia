@@ -9,14 +9,14 @@
             <!-- Header -->
             <StackPanel Spacing="2">
                 <TextBlock x:Name="DateText" Classes="muted" />
-                <TextBlock Text="Ready to train?" FontSize="28" FontWeight="Bold" />
+                <TextBlock Text="Ready to train?" Classes="headline-medium" />
             </StackPanel>
 
             <!-- Weekly streak: plain surface, no card -->
             <StackPanel Spacing="14">
                 <StackPanel Orientation="Horizontal" Spacing="14">
                     <TextBlock x:Name="StreakText" Text="0" FontSize="80" FontWeight="ExtraBold"
-                               Foreground="{DynamicResource Accent}" />
+                               Foreground="{DynamicResource Md3PrimaryBrush}" />
                     <TextBlock Text="week streak" FontSize="18" FontWeight="SemiBold"
                                VerticalAlignment="Bottom" Margin="0,0,0,18" />
                 </StackPanel>
@@ -27,12 +27,14 @@
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock x:Name="StreakHint" Classes="muted" VerticalAlignment="Center" />
                     <PathIcon x:Name="GoalCheck" IsVisible="False" Width="16" Height="16"
-                              Foreground="{DynamicResource Accent}"
+                              Foreground="{DynamicResource Md3PrimaryBrush}"
                               Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
                 </StackPanel>
             </StackPanel>
 
-            <Button x:Name="StartButton" Classes="primary" Content="Start workout" />
+            <!-- Default M3 Button is the filled variant -->
+            <Button x:Name="StartButton" Content="Start workout" Height="56" FontSize="16"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
 
             <!-- Recent PRs -->
             <StackPanel Spacing="8">
@@ -41,11 +43,13 @@
                 <ItemsControl x:Name="PrList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:PrDisplay">
-                            <Border BorderBrush="{DynamicResource Outline}" BorderThickness="0,0,0,1" Padding="0,14">
+                            <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+                                    BorderThickness="0,0,0,1" Padding="0,14">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <TextBlock Text="{Binding ExerciseName}" FontSize="16" />
                                     <TextBlock Grid.Column="1" Text="{Binding ResultText}"
-                                               FontWeight="SemiBold" Foreground="{DynamicResource Accent}" />
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Md3PrimaryBrush}" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -58,12 +62,12 @@
                 <TextBlock Classes="section" Text="Last workout" />
                 <TextBlock x:Name="LastEmpty" Classes="muted" Text="Nothing logged yet. Start your first workout." />
                 <Border x:Name="LastCard" IsVisible="False" CornerRadius="16" Padding="20"
-                        Background="{DynamicResource SurfaceContainer}">
+                        Background="{DynamicResource Md3SurfaceContainerBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock x:Name="LastTitle" FontSize="16" FontWeight="SemiBold" />
                         <TextBlock x:Name="LastExercises" Classes="muted" TextWrapping="Wrap" />
                         <TextBlock x:Name="LastMeta" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Accent}" Margin="0,6,0,0" />
+                                   Foreground="{DynamicResource Md3PrimaryBrush}" Margin="0,6,0,0" />
                     </StackPanel>
                 </Border>
             </StackPanel>

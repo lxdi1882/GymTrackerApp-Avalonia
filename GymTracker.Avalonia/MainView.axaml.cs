@@ -4,28 +4,51 @@ namespace GymTracker.Avalonia;
 
 public partial class MainView : UserControl
 {
+    private readonly Control[] _hosts;
+
     public MainView()
     {
         InitializeComponent();
 
-        NavHome.IsCheckedChanged += async (_, _) => { if (NavHome.IsChecked == true) await ShowAsync(0); };
-        NavWorkout.IsCheckedChanged += async (_, _) => { if (NavWorkout.IsChecked == true) await ShowAsync(1); };
-        NavHistory.IsCheckedChanged += async (_, _) => { if (NavHistory.IsChecked == true) await ShowAsync(2); };
-        NavExercises.IsCheckedChanged += async (_, _) => { if (NavExercises.IsChecked == true) await ShowAsync(3); };
-        NavSettings.IsCheckedChanged += async (_, _) => { if (NavSettings.IsChecked == true) await ShowAsync(4); };
+        _hosts = new Control[] { HomeHost, WorkoutHost, HistoryHost, ExercisesHost, SettingsHost };
 
-        // Setting IsChecked switches the page through the handlers above
-        HomePage.StartWorkoutRequested += (_, _) => NavWorkout.IsChecked = true;
-        WorkoutPage.WorkoutFinished += (_, _) => NavHome.IsChecked = true;
+        // first launch: let the home page ease in
+        Loaded += async (_, _) =>
+        {
+            await Task.Delay(16);
+            HomeHost.Classes.Set("off", false);
+        };
+
+        // NavigationBar only reports selection; it doesn't switch pages for us
+        NavBar.SelectionChanged += async (_, _) =>
+        {
+            if (NavBar.SelectedIndex >= 0)
+                await ShowAsync(NavBar.SelectedIndex);
+        };
+
+        // Setting SelectedIndex switches the page through the handler above
+        HomePage.StartWorkoutRequested += (_, _) => NavBar.SelectedIndex = 1;
+        WorkoutPage.WorkoutFinished += (_, _) => NavBar.SelectedIndex = 0;
     }
 
     private async Task ShowAsync(int index)
     {
-        HomePage.IsVisible = index == 0;
-        WorkoutPage.IsVisible = index == 1;
-        HistoryPage.IsVisible = index == 2;
-        ExercisesPage.IsVisible = index == 3;
-        SettingsPage.IsVisible = index == 4;
+        for (int i = 0; i < _hosts.Length; i++)
+        {
+            var host = _hosts[i];
+
+            if (i != index)
+            {
+                host.IsVisible = false;
+                host.Classes.Set("off", true);     // park it in the "off" pose for next time
+            }
+            else if (!host.IsVisible)
+            {
+                host.Classes.Set("off", true);
+                host.IsVisible = true;
+                _ = PlayEnterAsync(host);          // fade + rise, see App.axaml
+            }
+        }
 
         switch (index)
         {
@@ -35,5 +58,11 @@ public partial class MainView : UserControl
             case 3: await ExercisesPage.RefreshAsync(); break;
             case 4: await SettingsPage.LoadAsync(); break;
         }
+    }
+
+    private static async Task PlayEnterAsync(Control host)
+    {
+        await Task.Delay(16);                      // let the "off" pose render first
+        host.Classes.Set("off", false);
     }
 }
