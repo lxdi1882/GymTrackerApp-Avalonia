@@ -49,19 +49,28 @@ public partial class HomeView : UserControl
         PrList.ItemsSource = items;
         PrEmpty.IsVisible = items.Count == 0;
 
-        // Last workout
-        var last = (await App.Workouts.GetWorkoutDaySummariesAsync()).FirstOrDefault();
-        LastCard.IsVisible = last is not null;
-        LastEmpty.IsVisible = last is null;
+        // Last workout: only the latest session is loaded, not the whole history
+        var session = await App.Db.GetLatestSessionAsync();
+        LastCard.IsVisible = session is not null;
+        LastEmpty.IsVisible = session is null;
 
-        if (last is not null)
+        if (session is not null)
         {
-            LastTitle.Text = $"{last.DayLabel}, {last.Date:ddd MMM d}";
-            LastExercises.Text = string.Join(", ", last.ExerciseNames);
+            var names = new List<string>();
+            int totalSets = 0;
 
-            var session = (await App.Db.GetAllSessionsAsync()).FirstOrDefault(x => x.Id == last.SessionId);
-            var meta = $"{last.ExerciseNames.Count} exercises, {last.TotalSets} sets";
-            if (session is { DurationSeconds: > 0 })
+            foreach (var log in await App.Db.GetLogsForSessionAsync(session.Id))
+            {
+                var exercise = await App.Db.GetExerciseByIdAsync(log.ExerciseId);
+                names.Add(exercise?.Name ?? "Unknown exercise");
+                totalSets += (await App.Db.GetSetsForLogAsync(log.Id)).Count;
+            }
+
+            LastTitle.Text = $"Workout, {session.Date:ddd MMM d}";
+            LastExercises.Text = string.Join(", ", names);
+
+            var meta = $"{names.Count} exercises, {totalSets} sets";
+            if (session.DurationSeconds > 0)
                 meta += $", {HistoryView.FormatDuration(session.DurationSeconds)}";
             LastMeta.Text = meta;
         }

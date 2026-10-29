@@ -116,6 +116,14 @@ private async Task Init()
             .ToListAsync();
     }
     
+    public async Task<WorkoutSession?> GetLatestSessionAsync()
+    {
+        await Init();
+        return await _db.Table<WorkoutSession>()
+            .OrderByDescending(s => s.Date)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Exercise> GetExerciseByIdAsync(int id)
     {
         await Init();
