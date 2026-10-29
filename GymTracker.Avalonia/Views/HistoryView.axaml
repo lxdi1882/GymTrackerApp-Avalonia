@@ -3,97 +3,137 @@
              xmlns:sys="using:System"
              xmlns:vm="using:GymTracker.Avalonia.Views"
              xmlns:models="using:GymTracker.Avalonia.Models"
+             xmlns:m3c="using:Material3.Avalonia.Controls"
              x:Class="GymTracker.Avalonia.Views.HistoryView">
 
-    <ScrollViewer>
-        <StackPanel Margin="24,28,24,24" Spacing="24" MaxWidth="640">
+    <!-- Scrim and DialogPane are in-place overlays: they cover this shared Panel -->
+    <Panel>
 
-            <!-- Header -->
-            <StackPanel Spacing="2">
-                <TextBlock x:Name="SummaryText" Classes="muted" />
-                <TextBlock Text="History" Classes="headline-medium" />
-            </StackPanel>
+        <ScrollViewer x:Name="Scroller">
+            <StackPanel Margin="24,28,24,24" Spacing="24" MaxWidth="640">
 
-            <TextBlock x:Name="EmptyText" Classes="muted" IsVisible="False"
-                       Text="No workouts yet. Finish one and it shows up here." />
-            <TextBlock x:Name="ErrorText" IsVisible="False" FontSize="14"
-                       Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
+                <!-- Header: back arrow appears once you drill into a month or a day -->
+                <Grid ColumnDefinitions="Auto,*">
+                    <m3c:IconButton x:Name="BackButton" Variant="Standard" IsVisible="False"
+                                    VerticalAlignment="Center" Margin="-12,0,8,0"
+                                    AutomationProperties.Name="Back">
+                        <PathIcon Data="M20,11H7.83L13.42,5.41L12,4L4,12L12,20L13.41,18.59L7.83,13H20V11Z" />
+                    </m3c:IconButton>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock x:Name="SummaryText" Classes="muted" />
+                        <TextBlock x:Name="TitleText" Text="History" Classes="headline-medium"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
 
-            <ItemsControl x:Name="SessionList">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Spacing="12" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+                <TextBlock x:Name="EmptyText" Classes="muted" IsVisible="False"
+                           Text="No workouts yet. Finish one and it shows up here." />
+                <TextBlock x:Name="ErrorText" IsVisible="False" FontSize="14"
+                           Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:HistorySession">
-                        <Border CornerRadius="16" Background="{DynamicResource Md3SurfaceContainerBrush}">
-                            <StackPanel>
+                <!-- Level 1: months -->
+                <Border x:Name="MonthsHost" Classes="page">
+                    <ItemsControl x:Name="MonthList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HistoryMonth">
+                                <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <Button Classes="text row" Click="OnOpenMonth" MinHeight="64"
+                                            AutomationProperties.Name="{Binding Title}">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Subtitle}" Classes="muted" />
+                                            </StackPanel>
+                                            <PathIcon Grid.Column="1" Width="20" Height="20"
+                                                      Foreground="{DynamicResource Md3OnSurfaceVariantBrush}"
+                                                      Data="M10,6L8.59,7.41L13.17,12L8.59,16.59L10,18L16,12L10,6Z" />
+                                        </Grid>
+                                    </Button>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
 
-                                <!-- Session header (tap to expand) -->
-                                <Button Classes="text row" CornerRadius="16" Padding="20,16"
-                                        Click="OnToggleSession" AutomationProperties.Name="Show or hide workout details">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding Subtitle}" Classes="muted" />
+                <!-- Level 2: days of the chosen month -->
+                <Border x:Name="DaysHost" Classes="page off" IsVisible="False">
+                    <ItemsControl x:Name="DayList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HistoryDay">
+                                <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <Button Classes="text row" Click="OnOpenDay" MinHeight="72"
+                                            AutomationProperties.Name="{Binding Title}">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel VerticalAlignment="Center" Spacing="1">
+                                                <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Subtitle}" Classes="muted" />
+                                                <TextBlock Text="{Binding Preview}" Classes="muted"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <PathIcon Grid.Column="1" Width="20" Height="20" Margin="12,0,0,0"
+                                                      Foreground="{DynamicResource Md3OnSurfaceVariantBrush}"
+                                                      Data="M10,6L8.59,7.41L13.17,12L8.59,16.59L10,18L16,12L10,6Z" />
+                                        </Grid>
+                                    </Button>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <!-- Level 3: one workout, sets are shown directly -->
+                <Border x:Name="DetailHost" Classes="page off" IsVisible="False">
+                    <StackPanel Spacing="8">
+                        <ItemsControl x:Name="DetailList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:ExerciseLogDisplay">
+                                    <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+                                            BorderThickness="0,0,0,1" Padding="0,16">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="{Binding ExerciseName}" FontSize="16"
+                                                           FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Grid.Column="1" Text="{Binding SetCountText}"
+                                                           Classes="muted" Margin="12,0,0,0" />
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding SetLines}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="sys:String">
+                                                        <TextBlock Text="{Binding}" FontSize="15" Margin="0,3" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </StackPanel>
-                                        <TextBlock Grid.Column="1" Text="{Binding Chevron}" Classes="muted"
-                                                   VerticalAlignment="Center" />
-                                    </Grid>
-                                </Button>
-
-                                <!-- Exercises (each expands to its sets); "reveal" + "open" plays the expand animation -->
-                                <StackPanel Classes="reveal" Classes.open="{Binding IsExpanded}"
-                                            IsVisible="{Binding IsExpanded}" Margin="20,0,20,12">
-                                    <ItemsControl ItemsSource="{Binding Exercises}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="models:ExerciseLogDisplay">
-                                                <StackPanel>
-                                                    <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
-                                                            BorderThickness="0,1,0,0">
-                                                        <Button Classes="text row" Padding="0,12"
-                                                                Click="OnToggleExercise"
-                                                                AutomationProperties.Name="Show or hide sets">
-                                                            <Grid ColumnDefinitions="*,Auto,24">
-                                                                <TextBlock Text="{Binding ExerciseName}" FontSize="15" />
-                                                                <TextBlock Grid.Column="1" Text="{Binding SetCountText}"
-                                                                           Classes="muted" />
-                                                                <TextBlock Grid.Column="2" Text="{Binding ChevronGlyph}"
-                                                                           Classes="muted" HorizontalAlignment="Right" />
-                                                            </Grid>
-                                                        </Button>
-                                                    </Border>
-
-                                                    <ItemsControl Classes="reveal" Classes.open="{Binding IsExpanded}"
-                                                                  IsVisible="{Binding IsExpanded}"
-                                                                  ItemsSource="{Binding SetLines}" Margin="0,0,0,8">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate x:DataType="sys:String">
-                                                                <TextBlock Text="{Binding}" Classes="muted"
-                                                                           Margin="0,3" />
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-
-                                    <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}" BorderThickness="0,1,0,0"
-                                            Margin="0,4,0,0" Padding="0,8,0,0">
-                                        <Button Classes="text danger" Content="{Binding DeleteLabel}"
-                                                Click="OnDeleteSession" />
                                     </Border>
-                                </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                        <Button x:Name="DeleteButton" Classes="text danger" Content="Delete workout"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Delete confirmation (M3 DialogPane over an M3 Scrim) -->
+        <m3c:Scrim x:Name="Scrim" IsOpen="False" />
+
+        <m3c:DialogPane x:Name="ConfirmPanel" Classes="dialog" Title="Delete workout?"
+                        IsVisible="False" Margin="24" MaxWidth="440"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <TextBlock x:Name="ConfirmText" TextWrapping="Wrap" />
+
+            <m3c:DialogPane.Buttons>
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button x:Name="CancelButton" Classes="text" Content="Cancel" />
+                    <Button x:Name="ConfirmDeleteButton" Classes="text danger" Content="Delete" />
+                </StackPanel>
+            </m3c:DialogPane.Buttons>
+        </m3c:DialogPane>
+
+    </Panel>
 </UserControl>

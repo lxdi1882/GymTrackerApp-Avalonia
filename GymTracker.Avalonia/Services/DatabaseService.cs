@@ -124,6 +124,34 @@ private async Task Init()
             .FirstOrDefaultAsync();
     }
 
+    public async Task<List<WorkoutSession>> GetSessionsInRangeAsync(DateTime from, DateTime to)
+    {
+        await Init();
+        return await _db.Table<WorkoutSession>()
+            .Where(s => s.Date >= from && s.Date < to)
+            .OrderByDescending(s => s.Date)
+            .ToListAsync();
+    }
+
+    // one query for many sessions, instead of one query per session
+    public async Task<List<ExerciseLog>> GetLogsForSessionsAsync(List<int> sessionIds)
+    {
+        await Init();
+        if (sessionIds.Count == 0) return new List<ExerciseLog>();
+        return await _db.Table<ExerciseLog>()
+            .Where(l => sessionIds.Contains(l.WorkoutSessionId))
+            .ToListAsync();
+    }
+
+    public async Task<List<SetEntry>> GetSetsForLogsAsync(List<int> logIds)
+    {
+        await Init();
+        if (logIds.Count == 0) return new List<SetEntry>();
+        return await _db.Table<SetEntry>()
+            .Where(s => logIds.Contains(s.ExerciseLogId))
+            .ToListAsync();
+    }
+
     public async Task<Exercise> GetExerciseByIdAsync(int id)
     {
         await Init();

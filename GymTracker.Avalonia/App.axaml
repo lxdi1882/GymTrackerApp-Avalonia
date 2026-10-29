@@ -79,6 +79,29 @@
             <Setter Property="RenderTransform" Value="translateY(28px)" />
         </Style>
 
+        <!-- Bottom sheet: slides up + fades in when "off" is removed -->
+        <Style Selector="Border.sheet">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.28" Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform"
+                                                   Duration="0:0:0.28" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.sheet.off">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="translateY(48px)" />
+        </Style>
+
+        <!-- Picker list row, highlighted when selected -->
+        <Style Selector="Border.pickrow">
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style Selector="Border.pickrow.sel">
+            <Setter Property="Background" Value="{DynamicResource Md3SurfaceContainerHighestBrush}" />
+        </Style>
+
         <!-- Expanding content (History accordions): opacity only, no transform animators needed -->
         <Style Selector=".reveal.open">
             <Style.Animations>

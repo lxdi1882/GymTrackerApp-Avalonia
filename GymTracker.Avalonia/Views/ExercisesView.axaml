@@ -27,23 +27,35 @@
                 <TextBlock x:Name="EmptyText" Classes="muted" IsVisible="False"
                            Text="No exercises match your search." />
 
-                <!-- Grouped list -->
+                <!-- Muscle groups: tap to expand, rows are only built for opened groups -->
                 <ItemsControl x:Name="GroupList">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Spacing="24" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ExerciseGroup">
-                            <StackPanel Spacing="4">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <TextBlock Text="{Binding Name}" Classes="section"
-                                               Foreground="{DynamicResource Md3PrimaryBrush}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding CountText}" Classes="muted"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                                <ItemsControl ItemsSource="{Binding Items}">
+                            <StackPanel>
+                                <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <Button Classes="text row" Click="OnToggleGroup" MinHeight="56"
+                                            AutomationProperties.Name="{Binding Name}">
+                                        <Grid ColumnDefinitions="*,Auto,Auto">
+                                            <TextBlock Text="{Binding Name}" Classes="section"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Md3PrimaryBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding CountText}" Classes="muted"
+                                                       Margin="12,0" VerticalAlignment="Center" />
+                                            <Panel Grid.Column="2" Width="24" Height="24">
+                                                <PathIcon Width="24" Height="24" IsVisible="{Binding IsCollapsed}"
+                                                          Foreground="{DynamicResource Md3OnSurfaceVariantBrush}"
+                                                          Data="M16.59,8.59L12,13.17L7.41,8.59L6,10L12,16L18,10L16.59,8.59Z" />
+                                                <PathIcon Width="24" Height="24" IsVisible="{Binding IsExpanded}"
+                                                          Foreground="{DynamicResource Md3OnSurfaceVariantBrush}"
+                                                          Data="M12,8L6,14L7.41,15.41L12,10.83L16.59,15.41L18,14L12,8Z" />
+                                            </Panel>
+                                        </Grid>
+                                    </Button>
+                                </Border>
+
+                                <ItemsControl Classes="reveal" Classes.open="{Binding IsExpanded}"
+                                              ItemsSource="{Binding VisibleItems}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="models:Exercise">
                                             <Border BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
@@ -52,9 +64,9 @@
                                                         AutomationProperties.Name="{Binding Name}">
                                                     <Grid ColumnDefinitions="*,Auto">
                                                         <TextBlock Text="{Binding Name}" FontSize="16"
-                                                                   TextWrapping="Wrap" />
+                                                                   TextWrapping="Wrap" Margin="12,0,0,0" />
                                                         <TextBlock Grid.Column="1" Text="{Binding SubTarget}"
-                                                                   Classes="muted" Margin="12,0,0,0"
+                                                                   Classes="muted" Margin="12,0"
                                                                    VerticalAlignment="Center" />
                                                     </Grid>
                                                 </Button>

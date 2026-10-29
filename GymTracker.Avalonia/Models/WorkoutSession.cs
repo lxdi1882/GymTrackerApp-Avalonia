@@ -10,6 +10,8 @@ public class WorkoutSession
     
     public int ProgramId { get; set; }
     public int TrainingDayId { get; set; }
+
+        [Indexed]
     public DateTime Date{ get; set; }
     //public List<ExerciseEntry> Exercises{ get; set; }
     public int DurationSeconds { get; set; }

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -6,11 +8,36 @@ using GymTracker.Avalonia.Models;
 
 namespace GymTracker.Avalonia.Views;
 
-public class ExerciseGroup
+public class ExerciseGroup : INotifyPropertyChanged
 {
     public string Name { get; set; } = "";
     public List<Exercise> Items { get; set; } = new();
     public string CountText => $"{Items.Count} exercise{(Items.Count == 1 ? "" : "s")}";
+
+    private static readonly List<Exercise> None = new();
+
+    private bool _isExpanded;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsCollapsed));
+            OnPropertyChanged(nameof(VisibleItems));
+        }
+    }
+
+    public bool IsCollapsed => !IsExpanded;
+
+    // rows are only created once the group is opened
+    public List<Exercise> VisibleItems => IsExpanded ? Items : None;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 public partial class ExercisesView : UserControl
@@ -19,6 +46,8 @@ public partial class ExercisesView : UserControl
 
     private List<Exercise> _all = new();
     private List<string> _groupChoices = new();
+    private readonly HashSet<string> _expanded = new(StringComparer.OrdinalIgnoreCase);
+    private string? _signature;          // lets RefreshAsync skip rebuilding when nothing changed
     private Exercise? _editing;          // null = adding a new exercise
     private bool _confirmDelete;
     private bool _closing;
@@ -49,7 +78,15 @@ public partial class ExercisesView : UserControl
 
     public async Task RefreshAsync()
     {
-        _all = await App.Db.GetExercisesAsync();
+        var data = await App.Db.GetExercisesAsync();
+
+        // nothing added, renamed or deleted since last time: keep what's on screen
+        string signature = string.Join("|", data.Select(e =>
+            $"{e.Id}:{e.Name}:{e.MuscleGroup}:{e.SubTarget}"));
+        if (signature == _signature) return;
+        _signature = signature;
+
+        _all = data;
 
         // muscle group choices: the standard ones plus anything already in the DB
         _groupChoices = GroupOrder
@@ -76,7 +113,9 @@ public partial class ExercisesView : UserControl
             .Select(g => new ExerciseGroup
             {
                 Name = g.Key,
-                Items = g.OrderBy(e => e.Name).ToList()
+                Items = g.OrderBy(e => e.Name).ToList(),
+                // searching opens every matching group, otherwise only the ones you opened
+                IsExpanded = query.Length > 0 || _expanded.Contains(g.Key)
             })
             .OrderBy(g =>
             {
@@ -88,7 +127,20 @@ public partial class ExercisesView : UserControl
 
         GroupList.ItemsSource = groups;
         EmptyText.IsVisible = groups.Count == 0;
-        CountText.Text = $"{_all.Count} exercise{(_all.Count == 1 ? "" : "s")}, tap one to edit";
+        CountText.Text = $"{_all.Count} exercise{(_all.Count == 1 ? "" : "s")}, tap a group to open it";
+    }
+
+    private void OnToggleGroup(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not ExerciseGroup g) return;
+
+        g.IsExpanded = !g.IsExpanded;
+
+        // while searching, groups are opened automatically, so don't remember those
+        if ((SearchBox.Text?.Trim().Length ?? 0) > 0) return;
+
+        if (g.IsExpanded) _expanded.Add(g.Name);
+        else _expanded.Remove(g.Name);
     }
 
     private void OnEditExercise(object? sender, RoutedEventArgs e)
@@ -198,6 +250,8 @@ public partial class ExercisesView : UserControl
                 _editing.SubTarget = subTarget;
                 await App.Db.UpdateExerciseAsync(_editing);
             }
+
+            _expanded.Add(group);   // open the group so you can see what you just saved
 
             await CloseFormAsync();
             await RefreshAsync();

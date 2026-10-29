@@ -6,102 +6,200 @@
              xmlns:icons="using:Material3.Avalonia.Icons"
              x:Class="GymTracker.Avalonia.Views.WorkoutView">
 
-    <ScrollViewer>
-        <StackPanel Margin="24,28,24,24" Spacing="28" MaxWidth="640">
+    <!-- Scrim and the sheet are in-place overlays: they cover this shared Panel -->
+    <Panel>
 
-            <!-- Header -->
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Spacing="2">
-                    <TextBlock x:Name="TimerText" Classes="muted" Text="00:00" />
-                    <TextBlock Text="Workout" Classes="headline-medium" />
-                </StackPanel>
-                <Button x:Name="FinishButton" Grid.Column="1" Classes="tonal" Content="Finish"
-                        VerticalAlignment="Center" IsEnabled="False" />
-            </Grid>
+        <ScrollViewer>
+            <StackPanel Margin="24,28,24,24" Spacing="28" MaxWidth="640">
 
-            <!-- Inline finish confirmation -->
-            <Border x:Name="ConfirmPanel" IsVisible="False" CornerRadius="16" Padding="20"
-                    Background="{DynamicResource Md3SurfaceContainerBrush}">
-                <StackPanel Spacing="16">
-                    <TextBlock x:Name="ConfirmText" FontSize="16" FontWeight="SemiBold" />
-                    <Grid ColumnDefinitions="*,12,*">
-                        <Button x:Name="CancelButton" Classes="tonal" Content="Keep going"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-                        <Button x:Name="SaveButton" Grid.Column="2" Content="Save workout"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- Add set -->
-            <StackPanel Spacing="12">
-                <TextBlock Classes="section" Text="Add set" />
-
-                <ComboBox x:Name="ExerciseBox" PlaceholderText="Choose exercise"
-                          HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:Exercise">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="{Binding Name}" />
-                                <TextBlock Text="{Binding SubTarget}" Classes="muted" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-
-                <Grid ColumnDefinitions="*,12,*">
-                    <TextBox x:Name="WeightBox" PlaceholderText="Weight (kg)" />
-                    <TextBox x:Name="RepsBox" Grid.Column="2" PlaceholderText="Reps" />
+                <!-- Header -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="TimerText" Classes="muted" Text="00:00" />
+                        <TextBlock Text="Workout" Classes="headline-medium" />
+                    </StackPanel>
+                    <Button x:Name="FinishButton" Grid.Column="1" Classes="tonal" Content="Finish"
+                            VerticalAlignment="Center" IsEnabled="False" />
                 </Grid>
 
-                <TextBlock x:Name="ErrorText" IsVisible="False" FontSize="14"
-                           Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
+                <!-- Inline finish confirmation -->
+                <Border x:Name="ConfirmPanel" IsVisible="False" CornerRadius="16" Padding="20"
+                        Background="{DynamicResource Md3SurfaceContainerBrush}">
+                    <StackPanel Spacing="16">
+                        <TextBlock x:Name="ConfirmText" FontSize="16" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,12,*">
+                            <Button x:Name="CancelButton" Classes="tonal" Content="Keep going"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                            <Button x:Name="SaveButton" Grid.Column="2" Content="Save workout"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-                <Button x:Name="AddSetButton" Content="Add set" Height="56" FontSize="16"
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-            </StackPanel>
+                <!-- Add set -->
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section" Text="Add set" />
 
-            <!-- This session -->
-            <StackPanel Spacing="12">
-                <TextBlock Classes="section" Text="This session" />
-                <TextBlock x:Name="EmptyText" Classes="muted" Text="Add your first set to get started." />
-
-                <ItemsControl x:Name="BlockList">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Spacing="12" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ExerciseBlock">
-                            <Border CornerRadius="16" Padding="20,16"
-                                    Background="{DynamicResource Md3SurfaceContainerBrush}">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" />
-                                    <ItemsControl ItemsSource="{Binding Sets}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:SetRow">
-                                                <Grid ColumnDefinitions="32,*,Auto" MinHeight="40">
-                                                    <TextBlock Text="{Binding Number}" Classes="muted"
-                                                               VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Text}"
-                                                               VerticalAlignment="Center" />
-                                                    <m3c:IconButton Grid.Column="2" Variant="Standard"
-                                                                    Click="OnDeleteSet"
-                                                                    AutomationProperties.Name="Delete set">
-                                                        <PathIcon Data="{x:Static icons:MaterialSymbols.Close}" />
-                                                    </m3c:IconButton>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                    <!-- Exercise field: opens the picker sheet -->
+                    <Border CornerRadius="4" BorderThickness="1" Padding="16,0"
+                            BorderBrush="{DynamicResource Md3OutlineVariantBrush}">
+                        <Button x:Name="PickerButton" Classes="text row" MinHeight="56"
+                                AutomationProperties.Name="Choose exercise">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="PickerText" Text="Choose exercise" FontSize="16"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock x:Name="PickerSub" Classes="muted" IsVisible="False" />
                                 </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                                <PathIcon Grid.Column="1" Width="24" Height="24"
+                                          Foreground="{DynamicResource Md3OnSurfaceVariantBrush}"
+                                          Data="M7.41,8.59L12,13.17L16.59,8.59L18,10L12,16L6,10L7.41,8.59Z" />
+                            </Grid>
+                        </Button>
+                    </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+                    <Grid ColumnDefinitions="*,12,*">
+                        <TextBox x:Name="WeightBox" PlaceholderText="Weight (kg)" />
+                        <TextBox x:Name="RepsBox" Grid.Column="2" PlaceholderText="Reps" />
+                    </Grid>
+
+                    <TextBlock x:Name="ErrorText" IsVisible="False" FontSize="14"
+                               Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
+
+                    <Button x:Name="AddSetButton" Content="Add set" Height="56" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                </StackPanel>
+
+                <!-- This session -->
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="section" Text="This session" />
+                    <TextBlock x:Name="EmptyText" Classes="muted" Text="Add your first set to get started." />
+
+                    <ItemsControl x:Name="BlockList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="12" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ExerciseBlock">
+                                <Border CornerRadius="16" Padding="20,16"
+                                        Background="{DynamicResource Md3SurfaceContainerBrush}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" />
+                                        <ItemsControl ItemsSource="{Binding Sets}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:SetRow">
+                                                    <Grid ColumnDefinitions="32,*,Auto" MinHeight="40">
+                                                        <TextBlock Text="{Binding Number}" Classes="muted"
+                                                                   VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Text}"
+                                                                   VerticalAlignment="Center" />
+                                                        <m3c:IconButton Grid.Column="2" Variant="Standard"
+                                                                        Click="OnDeleteSet"
+                                                                        AutomationProperties.Name="Delete set">
+                                                            <PathIcon Data="{x:Static icons:MaterialSymbols.Close}" />
+                                                        </m3c:IconButton>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Exercise picker: M3 modal bottom sheet over an M3 Scrim -->
+        <m3c:Scrim x:Name="PickerScrim" IsOpen="False" />
+
+        <Border x:Name="PickerPanel" Classes="sheet" IsVisible="False"
+                VerticalAlignment="Bottom" HorizontalAlignment="Stretch" MaxWidth="640"
+                CornerRadius="28,28,0,0" Padding="16,12,16,16"
+                Background="{DynamicResource Md3SurfaceContainerBrush}">
+            <StackPanel Spacing="12">
+
+                <!-- drag handle -->
+                <Border Width="32" Height="4" CornerRadius="2" HorizontalAlignment="Center"
+                        Background="{DynamicResource Md3OnSurfaceVariantBrush}" Opacity="0.4" />
+
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <m3c:IconButton x:Name="PickerBack" Variant="Standard" IsVisible="False"
+                                    AutomationProperties.Name="Back to muscle groups">
+                        <PathIcon Data="M20,11H7.83L13.42,5.41L12,4L4,12L12,20L13.41,18.59L7.83,13H20V11Z" />
+                    </m3c:IconButton>
+                    <TextBlock x:Name="PickerTitle" Grid.Column="1" Text="Choose exercise"
+                               Classes="section" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    <m3c:IconButton x:Name="PickerClose" Grid.Column="2" Variant="Standard"
+                                    AutomationProperties.Name="Close">
+                        <PathIcon Data="{x:Static icons:MaterialSymbols.Close}" />
+                    </m3c:IconButton>
+                </Grid>
+
+                <TextBox x:Name="PickerSearch" PlaceholderText="Search exercises" />
+
+                <TextBlock x:Name="PickerEmpty" Classes="muted" IsVisible="False" Margin="8,0"
+                           Text="No exercises match your search." />
+
+                <ScrollViewer x:Name="PickerScroll">
+                    <StackPanel>
+
+                        <!-- Step 1: muscle groups -->
+                        <ItemsControl x:Name="PickerGroupList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PickerGroup">
+                                    <Button Classes="text row" Click="OnPickGroup"
+                                            MinHeight="64" Padding="12,6"
+                                            AutomationProperties.Name="{Binding Name}">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="16" />
+                                                <TextBlock Text="{Binding CountText}" Classes="muted" />
+                                            </StackPanel>
+                                            <PathIcon Grid.Column="1" Width="20" Height="20"
+                                                      Foreground="{DynamicResource Md3OnSurfaceVariantBrush}"
+                                                      Data="M10,6L8.59,7.41L13.17,12L8.59,16.59L10,18L16,12L10,6Z" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Step 2: exercises of one group (or search results) -->
+                        <ItemsControl x:Name="PickerList" IsVisible="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PickerItem">
+                                    <Border Classes="pickrow" Classes.sel="{Binding IsSelected}">
+                                        <Button Classes="text row" Click="OnPickExercise"
+                                                MinHeight="56" Padding="12,6"
+                                                AutomationProperties.Name="{Binding Name}">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" FontSize="16"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Detail}" Classes="muted"
+                                                               IsVisible="{Binding HasDetail}" />
+                                                </StackPanel>
+                                                <PathIcon Grid.Column="1" Width="20" Height="20"
+                                                          IsVisible="{Binding IsSelected}"
+                                                          Foreground="{DynamicResource Md3PrimaryBrush}"
+                                                          Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                                            </Grid>
+                                        </Button>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+            </StackPanel>
+        </Border>
+
+    </Panel>
 </UserControl>

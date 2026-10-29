@@ -21,12 +21,36 @@ public class ExerciseBlock
     public List<SetRow> Sets { get; set; } = new();
 }
 
+public class PickerGroup
+{
+    public string Name { get; set; } = "";
+    public int Count { get; set; }
+    public string CountText => $"{Count} exercise{(Count == 1 ? "" : "s")}";
+}
+
+public class PickerItem
+{
+    public Exercise Exercise { get; set; } = null!;
+    public string Name => Exercise.Name ?? "";
+    public string Detail { get; set; } = "";
+    public bool HasDetail => !string.IsNullOrWhiteSpace(Detail);
+    public bool IsSelected { get; set; }
+}
+
 public partial class WorkoutView : UserControl
 {
+    private static readonly string[] GroupOrder = { "Chest", "Back", "Shoulders", "Arms", "Legs", "Core" };
+
     public event EventHandler? WorkoutFinished;
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private DateTime? _start;
+
+    private List<Exercise> _exercises = new();
+    private List<PickerGroup> _groups = new();
+    private Exercise? _selected;
+    private string? _openGroup;      // null = showing the muscle group list
+    private bool _pickerClosing;
 
     public WorkoutView()
     {
@@ -39,26 +63,179 @@ public partial class WorkoutView : UserControl
         SaveButton.Click += OnSaveClick;
         _timer.Tick += (_, _) => UpdateTimer();
 
+        // exercise picker sheet
+        PickerButton.Click += (_, _) => OpenPicker();
+        PickerSearch.TextChanged += (_, _) => UpdatePickerView();
+        PickerBack.Click += (_, _) => { _openGroup = null; UpdatePickerView(); };
+        PickerClose.Click += async (_, _) => await ClosePickerAsync();
+        PickerScrim.Dismissed += async (_, _) => await ClosePickerAsync();
+        KeyDown += async (_, e) =>
+        {
+            if (e.Key == Key.Escape && PickerPanel.IsVisible)
+            {
+                e.Handled = true;
+                await ClosePickerAsync();
+            }
+        };
+
         Loaded += async (_, _) => await LoadAsync();
     }
 
     public async Task LoadAsync()
     {
-        var selected = (ExerciseBox.SelectedItem as Exercise)?.Name;
+        int? selectedId = _selected?.Id;
 
-        var list = (await App.Db.GetExercisesAsync())
+        _exercises = (await App.Db.GetExercisesAsync())
             .OrderBy(e => e.MuscleGroup)
             .ThenBy(e => e.Name)
             .ToList();
 
-        ExerciseBox.ItemsSource = list;
-        ExerciseBox.SelectedItem = list.FirstOrDefault(e => e.Name == selected);
+        _selected = _exercises.FirstOrDefault(e => e.Id == selectedId);
+
+        BuildGroups();
+        UpdatePickerText();
         Render();
     }
 
+    // ---------- Exercise picker ----------
+
+    private static string GroupKey(Exercise e) => e.MuscleGroup ?? "Other";
+
+    private void UpdatePickerText()
+    {
+        bool has = _selected is not null;
+        PickerText.Text = _selected?.Name ?? "Choose exercise";
+        PickerText.Classes.Set("muted", !has);   // grey placeholder until an exercise is picked
+        PickerSub.Text = _selected?.SubTarget ?? "";
+        PickerSub.IsVisible = has && !string.IsNullOrWhiteSpace(_selected!.SubTarget);
+    }
+
+    // just a handful of rows (one per muscle group), so this is cheap
+    private void BuildGroups()
+    {
+        _groups = _exercises
+            .GroupBy(GroupKey)
+            .Select(g => new PickerGroup { Name = g.Key, Count = g.Count() })
+            .OrderBy(g =>
+            {
+                int i = Array.FindIndex(GroupOrder, x => x.Equals(g.Name, StringComparison.OrdinalIgnoreCase));
+                return i < 0 ? int.MaxValue : i;
+            })
+            .ThenBy(g => g.Name)
+            .ToList();
+    }
+
+    // decides what the sheet shows: group list, one group's exercises, or search results
+    private void UpdatePickerView()
+    {
+        string query = PickerSearch.Text?.Trim() ?? "";
+        bool searching = query.Length > 0;
+        bool showGroups = !searching && _openGroup is null;
+        bool inGroup = !searching && _openGroup is not null;
+
+        PickerBack.IsVisible = inGroup;
+        PickerTitle.Text = inGroup ? _openGroup : "Choose exercise";
+        PickerGroupList.IsVisible = showGroups;
+        PickerList.IsVisible = !showGroups;
+
+        if (showGroups)
+        {
+            PickerGroupList.ItemsSource = _groups;
+            PickerEmpty.Text = "No exercises yet. Add some in the Exercises tab.";
+            PickerEmpty.IsVisible = _groups.Count == 0;
+            return;
+        }
+
+        IEnumerable<Exercise> source = searching
+            ? _exercises.Where(e =>
+                (e.Name ?? "").Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (e.SubTarget ?? "").Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (e.MuscleGroup ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
+            : _exercises.Where(e => string.Equals(GroupKey(e), _openGroup, StringComparison.OrdinalIgnoreCase));
+
+        var items = source
+            .OrderBy(e => searching ? GroupKey(e) : "")
+            .ThenBy(e => e.Name)
+            .Select(e => new PickerItem
+            {
+                Exercise = e,
+                IsSelected = _selected?.Id == e.Id,
+                // search results mix groups, so show "Chest · Upper"
+                Detail = searching
+                    ? string.Join(" · ", new[] { GroupKey(e), e.SubTarget }.Where(s => !string.IsNullOrWhiteSpace(s)))
+                    : e.SubTarget ?? ""
+            })
+            .ToList();
+
+        PickerList.ItemsSource = items;
+        PickerEmpty.Text = "No exercises match your search.";
+        PickerEmpty.IsVisible = items.Count == 0;
+        PickerScroll.ScrollToHome();
+    }
+
+    private async void OpenPicker()
+    {
+        if (_pickerClosing) return;
+
+        // reopen on the group of the current exercise, since you usually stay in the same muscle
+        _openGroup = _selected is null ? null : GroupKey(_selected);
+
+        PickerSearch.Text = "";
+        UpdatePickerView();
+
+        // let the sheet use about half the window, so it never covers everything
+        PickerScroll.MaxHeight = Math.Max(240, Bounds.Height * 0.55);
+
+        PickerPanel.Classes.Set("off", true);
+        PickerPanel.IsVisible = true;
+        PickerScrim.IsOpen = true;
+
+        // on a phone, focusing the search box pops the keyboard over the list
+        if (!OperatingSystem.IsAndroid())
+            PickerSearch.Focus();
+
+        await Task.Delay(16);
+        PickerPanel.Classes.Set("off", false);
+    }
+
+    private async Task ClosePickerAsync()
+    {
+        if (!PickerPanel.IsVisible || _pickerClosing) return;
+
+        _pickerClosing = true;
+        PickerScrim.IsOpen = false;
+        PickerPanel.Classes.Set("off", true);
+
+        await Task.Delay(300);   // a bit longer than the 0.28s transition in App.axaml
+
+        PickerPanel.IsVisible = false;
+        _pickerClosing = false;
+    }
+
+    private void OnPickGroup(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not PickerGroup group) return;
+
+        _openGroup = group.Name;
+        UpdatePickerView();
+    }
+
+    private async void OnPickExercise(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not PickerItem item) return;
+
+        _selected = item.Exercise;
+        UpdatePickerText();
+        ErrorText.IsVisible = false;
+        await ClosePickerAsync();
+        WeightBox.Focus();
+    }
+
+    // ---------- Workout ----------
+
     private void AddSet()
     {
-        if (ExerciseBox.SelectedItem is not Exercise exercise)
+        if (_selected is not Exercise exercise)
         {
             ShowError("Choose an exercise first.");
             return;
