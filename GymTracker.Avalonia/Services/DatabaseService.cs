@@ -110,6 +110,42 @@ public class DatabaseService
     
 // GYM TRACKER — DatabaseService.cs additions
 
+
+
+public async Task DeleteSessionAsync(int sessionId)
+{
+    await Init();
+ 
+    var logs = await GetLogsForSessionAsync(sessionId);
+    foreach (var log in logs)
+    {
+        await _db.Table<SetEntry>().Where(s => s.ExerciseLogId == log.Id).DeleteAsync();
+        await _db.DeleteAsync(log);
+    }
+ 
+    await _db.DeleteAsync<WorkoutSession>(sessionId);
+}
+ 
+public async Task UpdateExerciseAsync(Exercise exercise)
+{
+    await Init();
+    await _db.UpdateAsync(exercise);
+}
+ 
+public async Task DeleteExerciseAsync(Exercise exercise)
+{
+    await Init();
+    await _db.DeleteAsync(exercise);
+}
+ 
+public async Task<int> CountLogsForExerciseAsync(int exerciseId)
+{
+    await Init();
+    return await _db.Table<ExerciseLog>().Where(l => l.ExerciseId == exerciseId).CountAsync();
+}
+
+
+
 public async Task<List<(Exercise Exercise, SetEntry Set, DateTime Date)>> GetRecentPRsAsync(int daysBack = 7)
 {
     await Init();

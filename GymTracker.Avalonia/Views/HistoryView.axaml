@@ -78,6 +78,12 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+
+                                    <Border BorderBrush="{DynamicResource Outline}" BorderThickness="0,1,0,0"
+                                            Margin="0,4,0,0" Padding="0,8,0,0">
+                                        <Button Classes="danger" Content="{Binding DeleteLabel}"
+                                                Click="OnDeleteSession" />
+                                    </Border>
                                 </StackPanel>
 
                             </StackPanel>

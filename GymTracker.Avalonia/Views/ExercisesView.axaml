@@ -4,7 +4,7 @@
              xmlns:models="using:GymTracker.Avalonia.Models"
              x:Class="GymTracker.Avalonia.Views.ExercisesView">
 
-    <ScrollViewer>
+    <ScrollViewer x:Name="Scroller">
         <StackPanel Margin="24,28,24,24" Spacing="24" MaxWidth="640">
 
             <!-- Header -->
@@ -17,11 +17,11 @@
                         VerticalAlignment="Center" />
             </Grid>
 
-            <!-- New exercise form -->
+            <!-- Add / edit form -->
             <Border x:Name="FormPanel" IsVisible="False" CornerRadius="16" Padding="20"
                     Background="{DynamicResource SurfaceContainer}">
                 <StackPanel Spacing="12">
-                    <TextBlock Classes="section" Text="New exercise" />
+                    <TextBlock x:Name="FormTitle" Classes="section" Text="New exercise" />
                     <TextBox x:Name="NameBox" Watermark="Name" MinHeight="48" CornerRadius="12"
                              VerticalContentAlignment="Center" />
                     <ComboBox x:Name="GroupBox" PlaceholderText="Muscle group"
@@ -36,6 +36,7 @@
                         <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" Content="Save exercise"
                                 Height="44" />
                     </Grid>
+                    <Button x:Name="DeleteButton" Classes="danger" Content="Delete exercise" IsVisible="False" />
                 </StackPanel>
             </Border>
 
@@ -66,14 +67,17 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models:Exercise">
                                         <Border BorderBrush="{DynamicResource Outline}"
-                                                BorderThickness="0,0,0,1" Padding="0,12">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Text="{Binding Name}" FontSize="16"
-                                                           TextWrapping="Wrap" />
-                                                <TextBlock Grid.Column="1" Text="{Binding SubTarget}"
-                                                           Classes="muted" Margin="12,0,0,0"
-                                                           VerticalAlignment="Center" />
-                                            </Grid>
+                                                BorderThickness="0,0,0,1">
+                                            <Button Classes="flat" Padding="0,12" Click="OnEditExercise"
+                                                    AutomationProperties.Name="{Binding Name}">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="{Binding Name}" FontSize="16"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding SubTarget}"
+                                                               Classes="muted" Margin="12,0,0,0"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Button>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

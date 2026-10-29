@@ -164,6 +164,26 @@
         <Style Selector="Border.seg.filled">
             <Setter Property="Background" Value="{DynamicResource Accent}" />
         </Style>
+
+        <!-- Danger button (text style, for destructive actions) -->
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ErrorText}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Outline}" />
+            <Setter Property="Foreground" Value="{DynamicResource ErrorText}" />
+        </Style>
+        <Style Selector="Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Outline}" />
+            <Setter Property="Foreground" Value="{DynamicResource ErrorText}" />
+        </Style>
     </Application.Styles>
 
     <Application.Resources>
