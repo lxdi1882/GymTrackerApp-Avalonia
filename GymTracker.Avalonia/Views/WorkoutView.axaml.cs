@@ -44,7 +44,6 @@ public partial class WorkoutView : UserControl
     public event EventHandler? WorkoutFinished;
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private DateTime? _start;
 
     private List<Exercise> _exercises = new();
     private List<PickerGroup> _groups = new();
@@ -94,7 +93,7 @@ public partial class WorkoutView : UserControl
 
         BuildGroups();
         UpdatePickerText();
-        Render();
+        Render();   // also resumes the timer if a workout is already running
     }
 
     // ---------- Exercise picker ----------
@@ -254,13 +253,7 @@ public partial class WorkoutView : UserControl
         }
 
         ErrorText.IsVisible = false;
-        App.Workouts.AddSet(exercise, weight, reps);
-
-        if (_start is null)
-        {
-            _start = DateTime.Now;
-            _timer.Start();
-        }
+        App.Workouts.AddSet(exercise, weight, reps);   // also records the start time on the first set
 
         RepsBox.Text = "";   // keep exercise + weight for the next set
         RepsBox.Focus();
@@ -287,7 +280,8 @@ public partial class WorkoutView : UserControl
 
     private async void OnSaveClick(object? sender, RoutedEventArgs e)
     {
-        int seconds = _start is null ? 0 : (int)(DateTime.Now - _start.Value).TotalSeconds;
+        var started = App.Workouts.StartedAt;
+        int seconds = started is null ? 0 : (int)(DateTime.Now - started.Value).TotalSeconds;
 
         try
         {
@@ -300,13 +294,10 @@ public partial class WorkoutView : UserControl
             return;
         }
 
-        _timer.Stop();
-        _start = null;
-        TimerText.Text = "00:00";
         WeightBox.Text = "";
         RepsBox.Text = "";
         ConfirmPanel.IsVisible = false;
-        Render();
+        Render();   // nothing in progress anymore, so this stops and resets the timer
         WorkoutFinished?.Invoke(this, EventArgs.Empty);
     }
 
@@ -334,15 +325,20 @@ public partial class WorkoutView : UserControl
         {
             ConfirmPanel.IsVisible = false;
             _timer.Stop();
-            _start = null;
             TimerText.Text = "00:00";
+        }
+        else if (App.Workouts.StartedAt is not null && !_timer.IsEnabled)
+        {
+            // a workout is running (first set just added, or this is a fresh screen): start ticking
+            _timer.Start();
+            UpdateTimer();
         }
     }
 
     private void UpdateTimer()
     {
-        if (_start is null) return;
-        var t = DateTime.Now - _start.Value;
+        if (App.Workouts.StartedAt is not DateTime started) return;
+        var t = DateTime.Now - started;
         TimerText.Text = t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"mm\:ss");
     }
 

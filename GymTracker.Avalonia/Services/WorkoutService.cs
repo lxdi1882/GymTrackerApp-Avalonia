@@ -10,6 +10,9 @@ public class WorkoutService
     
     private readonly DatabaseService _db;
     private Dictionary<string, ExerciseEntry> workoutInProgress = new Dictionary<string, ExerciseEntry>();
+
+    // when the first set was added; lives here (not in the view) so it survives the screen being recreated
+    public DateTime? StartedAt { get; private set; }
     
     public WorkoutService(DatabaseService db)
     {
@@ -52,6 +55,8 @@ public class WorkoutService
 
     workoutInProgress[exercise.Name].Sets.Add(newSet);
 
+    StartedAt ??= DateTime.Now;   // the timer starts with the first set
+
     return true;
 }
 
@@ -67,6 +72,9 @@ public void RemoveSet(string exerciseName, SetEntry set)
  
     if (entry.Sets.Count == 0)
         workoutInProgress.Remove(exerciseName);
+
+    if (workoutInProgress.Count == 0)
+        StartedAt = null;   // nothing left, so the timer resets
 }
  
 
@@ -103,6 +111,7 @@ public void RemoveSet(string exerciseName, SetEntry set)
 
         int count = workoutInProgress.Count;
         workoutInProgress.Clear();
+        StartedAt = null;   // workout saved, timer resets
 
         return count;
     }
@@ -207,4 +216,3 @@ public void RemoveSet(string exerciseName, SetEntry set)
     }
     
 }
-
