@@ -8,22 +8,36 @@ public class DatabaseService
 {
     private SQLiteAsyncConnection _db;
 
-    private async Task Init()
+   private readonly SemaphoreSlim _initLock = new(1, 1);
+
+private async Task Init()
+{
+    if (_db is not null)
+        return;
+
+    await _initLock.WaitAsync();
+    try
     {
         if (_db is not null)
             return;
-        
+
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var dbPath = Path.Combine(appData, "gymtracker.db3");
-        _db = new SQLiteAsyncConnection(dbPath);
-        
-        await _db.CreateTableAsync<Exercise>();
-        await _db.CreateTableAsync<WorkoutSession>();
-        await _db.CreateTableAsync<ExerciseLog>();
-        await _db.CreateTableAsync<SetEntry>();
-        await _db.CreateTableAsync<AppSetting>();
+        var conn = new SQLiteAsyncConnection(dbPath);
 
+        await conn.CreateTableAsync<Exercise>();
+        await conn.CreateTableAsync<WorkoutSession>();
+        await conn.CreateTableAsync<ExerciseLog>();
+        await conn.CreateTableAsync<SetEntry>();
+        await conn.CreateTableAsync<AppSetting>();
+
+        _db = conn;   // only visible to other callers once the tables exist
     }
+    finally
+    {
+        _initLock.Release();
+    }
+}
 
     public async Task<List<Exercise>> GetExercisesAsync()
     {

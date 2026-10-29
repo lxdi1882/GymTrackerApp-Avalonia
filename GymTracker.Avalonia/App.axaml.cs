@@ -18,10 +18,20 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        _ = Db.SeedExercisesAsync();
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            _ = Db.SeedExercisesAsync();
             desktop.MainWindow = new MainWindow();
+        }
+        else if (ApplicationLifetime is IActivityApplicationLifetime activity)
+        {
+            // Android: a new view is created each time the activity starts
+            activity.MainViewFactory = () => new MainView();
+        }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            singleView.MainView = new MainView();
         }
 
         base.OnFrameworkInitializationCompleted();
