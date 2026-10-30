@@ -23,6 +23,12 @@ public partial class HomeView : UserControl
     {
         DateText.Text = DateTime.Now.ToString("dddd, MMM d");
 
+        // bring back an interrupted workout first, so we know if one is in progress
+        await App.Workouts.RestoreDraftAsync();
+
+        bool inProgress = App.Workouts.HasWorkout;
+        StartButton.Content = inProgress ? "Resume workout" : "Start workout";
+
         // Weekly streak
         int goal = await App.Db.GetWeeklyGoalAsync();
         var (streak, thisWeek) = await App.Db.GetWeeklyStreakAsync(goal);
