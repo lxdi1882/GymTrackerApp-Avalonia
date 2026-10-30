@@ -18,8 +18,10 @@
                         <TextBlock x:Name="TimerText" Classes="muted" Text="00:00" />
                         <TextBlock Text="Workout" Classes="headline-medium" />
                     </StackPanel>
-                    <Button x:Name="FinishButton" Grid.Column="1" Classes="tonal" Content="Finish"
-                            VerticalAlignment="Center" IsEnabled="False" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button x:Name="PauseButton" Classes="tonal" Content="Pause" IsVisible="False" />
+                        <Button x:Name="FinishButton" Classes="tonal" Content="Finish" IsEnabled="False" />
+                    </StackPanel>
                 </Grid>
 
                 <!-- Inline finish confirmation -->

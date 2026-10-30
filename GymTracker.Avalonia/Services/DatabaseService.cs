@@ -307,5 +307,26 @@ private static DateTime StartOfWeek(DateTime date)
     return date.Date.AddDays(-diff);
 }
     
+private const string DraftKey = "DraftWorkout";
+
+public async Task SaveDraftAsync(string json)
+{
+    await Init();
+    await _db.InsertOrReplaceAsync(new AppSetting { Key = DraftKey, Value = json });
+}
+
+public async Task<string?> GetDraftAsync()
+{
+    await Init();
+    var row = await _db.Table<AppSetting>().FirstOrDefaultAsync(s => s.Key == DraftKey);
+    return row?.Value;
+}
+
+public async Task ClearDraftAsync()
+{
+    await Init();
+    await _db.Table<AppSetting>().Where(s => s.Key == DraftKey).DeleteAsync();
+}
+
     
 }

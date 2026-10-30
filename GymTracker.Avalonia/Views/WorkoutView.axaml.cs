@@ -60,6 +60,12 @@ public partial class WorkoutView : UserControl
         FinishButton.Click += OnFinishClick;
         CancelButton.Click += (_, _) => ConfirmPanel.IsVisible = false;
         SaveButton.Click += OnSaveClick;
+        PauseButton.Click += (_, _) =>
+        {
+            if (App.Workouts.IsTimerRunning) App.Workouts.PauseTimer();
+            else App.Workouts.ResumeTimer();
+            SyncTimer();
+        };
         _timer.Tick += (_, _) => UpdateTimer();
 
         // exercise picker sheet
@@ -82,6 +88,8 @@ public partial class WorkoutView : UserControl
 
     public async Task LoadAsync()
     {
+        await App.Workouts.RestoreDraftAsync();   // brings back an interrupted workout
+
         int? selectedId = _selected?.Id;
 
         _exercises = (await App.Db.GetExercisesAsync())
@@ -253,7 +261,7 @@ public partial class WorkoutView : UserControl
         }
 
         ErrorText.IsVisible = false;
-        App.Workouts.AddSet(exercise, weight, reps);   // also records the start time on the first set
+        App.Workouts.AddSet(exercise, weight, reps);   // also starts the timer on the first set
 
         RepsBox.Text = "";   // keep exercise + weight for the next set
         RepsBox.Focus();
@@ -280,8 +288,7 @@ public partial class WorkoutView : UserControl
 
     private async void OnSaveClick(object? sender, RoutedEventArgs e)
     {
-        var started = App.Workouts.StartedAt;
-        int seconds = started is null ? 0 : (int)(DateTime.Now - started.Value).TotalSeconds;
+        int seconds = (int)App.Workouts.ElapsedSeconds;
 
         try
         {
@@ -322,23 +329,27 @@ public partial class WorkoutView : UserControl
         FinishButton.IsEnabled = blocks.Count > 0;
 
         if (blocks.Count == 0)
-        {
             ConfirmPanel.IsVisible = false;
-            _timer.Stop();
-            TimerText.Text = "00:00";
-        }
-        else if (App.Workouts.StartedAt is not null && !_timer.IsEnabled)
-        {
-            // a workout is running (first set just added, or this is a fresh screen): start ticking
-            _timer.Start();
-            UpdateTimer();
-        }
+
+        SyncTimer();
+    }
+
+    // The service owns the timer; the view just mirrors it.
+    private void SyncTimer()
+    {
+        var w = App.Workouts;
+
+        if (w.IsTimerRunning) _timer.Start();
+        else _timer.Stop();
+
+        PauseButton.IsVisible = w.HasWorkout;
+        PauseButton.Content = w.IsTimerRunning ? "Pause" : "Resume";
+        UpdateTimer();
     }
 
     private void UpdateTimer()
     {
-        if (App.Workouts.StartedAt is not DateTime started) return;
-        var t = DateTime.Now - started;
+        var t = TimeSpan.FromSeconds(App.Workouts.ElapsedSeconds);
         TimerText.Text = t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"mm\:ss");
     }
 

@@ -29,6 +29,8 @@ public partial class MainView : UserControl
         // Setting SelectedIndex switches the page through the handler above
         HomePage.StartWorkoutRequested += (_, _) => NavBar.SelectedIndex = 1;
         WorkoutPage.WorkoutFinished += (_, _) => NavBar.SelectedIndex = 0;
+
+        _ = App.Workouts.RestoreDraftAsync();
     }
 
     private async Task ShowAsync(int index)

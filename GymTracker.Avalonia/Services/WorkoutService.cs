@@ -1,4 +1,5 @@
-﻿using GymTracker.Avalonia.Data;
+using System.Text.Json;
+using GymTracker.Avalonia.Data;
 using GymTracker.Avalonia.Models;
 
 namespace GymTracker.Avalonia.Services;
@@ -11,8 +12,18 @@ public class WorkoutService
     private readonly DatabaseService _db;
     private Dictionary<string, ExerciseEntry> workoutInProgress = new Dictionary<string, ExerciseEntry>();
 
-    // when the first set was added; lives here (not in the view) so it survives the screen being recreated
-    public DateTime? StartedAt { get; private set; }
+    // ---- timer (lives here so it survives the screen being recreated and gets persisted) ----
+    private double _elapsedBefore;          // seconds banked before the last resume
+    private DateTime? _runningSinceUtc;     // null = paused / not started
+
+    public bool HasWorkout => workoutInProgress.Count > 0;
+    public bool IsTimerRunning => _runningSinceUtc is not null;
+    public double ElapsedSeconds =>
+        _elapsedBefore + (_runningSinceUtc is { } since ? (DateTime.UtcNow - since).TotalSeconds : 0);
+
+    // ---- draft persistence ----
+    private Task? _restoreTask;
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
     
     public WorkoutService(DatabaseService db)
     {
@@ -38,6 +49,9 @@ public class WorkoutService
     
  public bool AddSet(Exercise exercise, double weight, int reps)
 {
+    if (!HasWorkout)
+        _runningSinceUtc = DateTime.UtcNow;   // the first set starts the clock
+
     var newSet = new SetEntry
     {
         Weight = weight,
@@ -55,8 +69,7 @@ public class WorkoutService
 
     workoutInProgress[exercise.Name].Sets.Add(newSet);
 
-    StartedAt ??= DateTime.Now;   // the timer starts with the first set
-
+    SaveDraft();
     return true;
 }
 
@@ -73,9 +86,126 @@ public void RemoveSet(string exerciseName, SetEntry set)
     if (entry.Sets.Count == 0)
         workoutInProgress.Remove(exerciseName);
 
-    if (workoutInProgress.Count == 0)
-        StartedAt = null;   // nothing left, so the timer resets
+    if (!HasWorkout)
+        ResetTimer();   // nothing left, so the timer resets
+
+    SaveDraft();
 }
+
+    public void PauseTimer()
+    {
+        if (_runningSinceUtc is null) return;
+        _elapsedBefore = ElapsedSeconds;   // bank it before clearing
+        _runningSinceUtc = null;
+        SaveDraft();
+    }
+
+    public void ResumeTimer()
+    {
+        if (_runningSinceUtc is not null || !HasWorkout) return;
+        _runningSinceUtc = DateTime.UtcNow;
+        SaveDraft();
+    }
+
+    private void ResetTimer()
+    {
+        _elapsedBefore = 0;
+        _runningSinceUtc = null;
+    }
+
+    public void DiscardWorkout()
+    {
+        workoutInProgress.Clear();
+        ResetTimer();
+        SaveDraft();   // empty workout clears the draft
+    }
+
+    // ---------------- draft save / restore ----------------
+
+    private void SaveDraft()
+    {
+        if (!HasWorkout)
+        {
+            _ = PersistAsync(null);
+            return;
+        }
+
+        // snapshot synchronously so what's saved matches this exact moment
+        var draft = new WorkoutDraft
+        {
+            ElapsedBeforeSeconds = _elapsedBefore,
+            RunningSinceUtc = _runningSinceUtc,
+            Exercises = workoutInProgress.Values.Select(e => new DraftExercise
+            {
+                ExerciseId = e.Exercise.Id,
+                Sets = e.Sets.Select(s => new DraftSet { Weight = s.Weight, Reps = s.Reps }).ToList()
+            }).ToList()
+        };
+
+        _ = PersistAsync(JsonSerializer.Serialize(draft));
+    }
+
+    private async Task PersistAsync(string? json)
+    {
+        await _saveLock.WaitAsync();   // keeps writes in order
+        try
+        {
+            if (json is null) await _db.ClearDraftAsync();
+            else await _db.SaveDraftAsync(json);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Draft save failed: {ex}");
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+    }
+
+    // Safe to call from several places; the work only happens once.
+    public Task RestoreDraftAsync() => _restoreTask ??= RestoreCoreAsync();
+
+    private async Task RestoreCoreAsync()
+    {
+        if (workoutInProgress.Count > 0) return;
+
+        string? json;
+        try { json = await _db.GetDraftAsync(); }
+        catch { return; }
+        if (string.IsNullOrWhiteSpace(json)) return;
+
+        WorkoutDraft? draft;
+        try { draft = JsonSerializer.Deserialize<WorkoutDraft>(json); }
+        catch { return; }
+        if (draft is null) return;
+
+        try
+        {
+            foreach (var de in draft.Exercises)
+            {
+                var exercise = await _db.GetExerciseByIdAsync(de.ExerciseId);
+                if (exercise is null) continue;   // exercise was deleted, skip it
+
+                workoutInProgress[exercise.Name] = new ExerciseEntry
+                {
+                    Exercise = exercise,
+                    Sets = de.Sets.Select(s => new SetEntry { Weight = s.Weight, Reps = s.Reps }).ToList()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Draft restore failed: {ex}");
+            return;
+        }
+
+        if (HasWorkout)
+        {
+            _elapsedBefore = draft.ElapsedBeforeSeconds;
+            _runningSinceUtc = draft.RunningSinceUtc;
+        }
+    }
  
 
     public async Task<int> FinishWorkoutAsync(int durationSeconds = 0)
@@ -111,7 +241,12 @@ public void RemoveSet(string exerciseName, SetEntry set)
 
         int count = workoutInProgress.Count;
         workoutInProgress.Clear();
-        StartedAt = null;   // workout saved, timer resets
+        ResetTimer();
+
+        // only reached if every save above worked, so a failed finish keeps the draft
+        await _saveLock.WaitAsync();
+        try { await _db.ClearDraftAsync(); }
+        finally { _saveLock.Release(); }
 
         return count;
     }
