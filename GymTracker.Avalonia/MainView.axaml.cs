@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace GymTracker.Avalonia;
 
@@ -15,9 +16,11 @@ public partial class MainView : UserControl
         // first launch: let the home page ease in
         Loaded += async (_, _) =>
         {
+            ApplySystemBars();
             await Task.Delay(16);
             HomeHost.Classes.Set("off", false);
         };
+        ActualThemeVariantChanged += (_, _) => ApplySystemBars();
 
         // NavigationBar only reports selection; it doesn't switch pages for us
         NavBar.SelectionChanged += async (_, _) =>
@@ -33,6 +36,19 @@ public partial class MainView : UserControl
         _ = App.Workouts.RestoreDraftAsync();
     }
 
+    // Paints the Android system bar (home/back buttons area) the same as the page surface.
+    // On desktop InsetsManager is null, so this does nothing there.
+    private void ApplySystemBars()
+    {
+        if (TopLevel.GetTopLevel(this)?.InsetsManager is not { } insets) return;
+
+        if (this.TryFindResource("Md3SurfaceBrush", ActualThemeVariant, out var res)
+            && res is ISolidColorBrush brush)
+        {
+            insets.SystemBarColor = brush.Color;
+        }
+    }
+
     private async Task ShowAsync(int index)
     {
         for (int i = 0; i < _hosts.Length; i++)
@@ -42,13 +58,13 @@ public partial class MainView : UserControl
             if (i != index)
             {
                 host.IsVisible = false;
-                host.Classes.Set("off", true);     // park it in the "off" pose for next time
+                host.Classes.Set("off", true);
             }
             else if (!host.IsVisible)
             {
                 host.Classes.Set("off", true);
                 host.IsVisible = true;
-                _ = PlayEnterAsync(host);          // fade + rise, see App.axaml
+                _ = PlayEnterAsync(host);
             }
         }
 
@@ -64,7 +80,7 @@ public partial class MainView : UserControl
 
     private static async Task PlayEnterAsync(Control host)
     {
-        await Task.Delay(16);                      // let the "off" pose render first
+        await Task.Delay(16);
         host.Classes.Set("off", false);
     }
 }
