@@ -47,6 +47,13 @@
             <Setter Property="Background" Value="{DynamicResource Md3PrimaryBrush}" />
         </Style>
 
+        <!-- Bottom nav: no labels, so center the icon vertically -->
+    <Style Selector="m3c|NavigationBarItem">
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Padding" Value="0,8,0,0" />
+    </Style>
+
         <!-- ================= Motion (things the library doesn't do for you) ================= -->
 
         <!-- Page host: fades + rises into place when the "off" class is removed -->

@@ -29,34 +29,34 @@
         </Panel>
 
         <!-- Bottom nav: same background as the page, thin separator line on top -->
-        <Border Grid.Row="1"
-                Background="{DynamicResource Md3SurfaceBrush}"
-                BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
-                BorderThickness="0,1,0,0">
-            <m3c:NavigationBar x:Name="NavBar" SelectedIndex="0"
-                                Height="58"
-                               Background="{DynamicResource Md3SurfaceBrush}">
-                <m3c:NavigationBarItem Label="Home" AutomationProperties.Name="Home">
+      <Border Grid.Row="1"
+        Padding="0,10,0,0"
+        Background="{DynamicResource Md3SurfaceBrush}"
+        BorderBrush="{DynamicResource Md3OutlineVariantBrush}"
+        BorderThickness="0,1,0,0">
+           <m3c:NavigationBar x:Name="NavBar" SelectedIndex="0"
+                   MinHeight="40" Height="40"
+                   Background="{DynamicResource Md3SurfaceBrush}">                <m3c:NavigationBarItem AutomationProperties.Name="Home">
                     <m3c:NavigationBarItem.Icon>
                         <PathIcon Data="{x:Static icons:MaterialSymbols.Home}" />
                     </m3c:NavigationBarItem.Icon>
                 </m3c:NavigationBarItem>
-                <m3c:NavigationBarItem Label="Workout" AutomationProperties.Name="Workout">
+                <m3c:NavigationBarItem AutomationProperties.Name="Workout">
                     <m3c:NavigationBarItem.Icon>
                         <PathIcon Data="{x:Static icons:MaterialSymbols.FitnessCenter}" />
                     </m3c:NavigationBarItem.Icon>
                 </m3c:NavigationBarItem>
-                <m3c:NavigationBarItem Label="History" AutomationProperties.Name="History">
+                <m3c:NavigationBarItem AutomationProperties.Name="History">
                     <m3c:NavigationBarItem.Icon>
                         <PathIcon Data="{x:Static icons:MaterialSymbols.History}" />
                     </m3c:NavigationBarItem.Icon>
                 </m3c:NavigationBarItem>
-                <m3c:NavigationBarItem Label="Exercises" AutomationProperties.Name="Exercises">
+                <m3c:NavigationBarItem AutomationProperties.Name="Exercises">
                     <m3c:NavigationBarItem.Icon>
                         <PathIcon Data="{x:Static icons:MaterialSymbols.FormatListBulleted}" />
                     </m3c:NavigationBarItem.Icon>
                 </m3c:NavigationBarItem>
-                <m3c:NavigationBarItem Label="Settings" AutomationProperties.Name="Settings">
+                <m3c:NavigationBarItem AutomationProperties.Name="Settings">
                     <m3c:NavigationBarItem.Icon>
                         <PathIcon Data="{x:Static icons:MaterialSymbols.Settings}" />
                     </m3c:NavigationBarItem.Icon>
