@@ -40,6 +40,7 @@ public partial class HistoryView : UserControl
 
     private int _navToken;
     private bool _closing;
+    private bool _deleting;   // true while a delete is running, so a second tap can't repeat it
 
     public HistoryView()
     {
@@ -67,7 +68,7 @@ public partial class HistoryView : UserControl
             }
         };
 
-        Loaded += async (_, _) => await RefreshAsync();
+        // No Loaded handler: MainView calls RefreshAsync every time this tab is shown.
     }
 
     // called every time the History tab is shown
@@ -315,7 +316,7 @@ public partial class HistoryView : UserControl
 
     private async Task CloseConfirmAsync()
     {
-        if (!ConfirmPanel.IsVisible || _closing) return;
+        if (!ConfirmPanel.IsVisible || _closing || _deleting) return;   // can't dismiss mid-delete
 
         _closing = true;
         Scrim.IsOpen = false;
@@ -329,11 +330,21 @@ public partial class HistoryView : UserControl
 
     private async Task DeleteDayAsync()
     {
-        if (_day is null || _month is null) return;
+        if (_day is null || _month is null || _deleting) return;
+
+        LockDelete(true);
 
         try
         {
-            await App.Db.DeleteSessionAsync(_day.SessionId);
+            var delete = App.Db.DeleteSessionAsync(_day.SessionId);
+
+            // only show "Deleting..." if this one is slow, so fast deletes don't flash it
+            if (await Task.WhenAny(delete, Task.Delay(150)) != delete)
+                ShowDeleteProgress(true);
+
+            await delete;
+
+            LockDelete(false);
             await CloseConfirmAsync();
 
             _cache.Clear();
@@ -358,10 +369,27 @@ public partial class HistoryView : UserControl
         }
         catch
         {
+            LockDelete(false);
             await CloseConfirmAsync();
             ErrorText.Text = "Couldn't delete the workout. Try again.";
             ErrorText.IsVisible = true;
         }
+    }
+
+    // Disables both dialog buttons while the delete runs.
+    private void LockDelete(bool locked)
+    {
+        _deleting = locked;
+        CancelButton.IsEnabled = !locked;
+        ConfirmDeleteButton.IsEnabled = !locked;
+
+        if (!locked) ShowDeleteProgress(false);
+    }
+
+    private void ShowDeleteProgress(bool on)
+    {
+        ConfirmDeleteButton.Content = on ? "Deleting..." : "Delete";
+        DeleteBusy.Classes.Set("busy", on);
     }
 
     public static string FormatDuration(int seconds)

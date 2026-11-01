@@ -57,29 +57,35 @@ public partial class HomeView : UserControl
 
         // Last workout: only the latest session is loaded, not the whole history
         var session = await App.Db.GetLatestSessionAsync();
-        LastCard.IsVisible = session is not null;
-        LastEmpty.IsVisible = session is null;
 
-        if (session is not null)
+        if (session is null)
         {
-            var names = new List<string>();
-            int totalSets = 0;
-
-            foreach (var log in await App.Db.GetLogsForSessionAsync(session.Id))
-            {
-                var exercise = await App.Db.GetExerciseByIdAsync(log.ExerciseId);
-                names.Add(exercise?.Name ?? "Unknown exercise");
-                totalSets += (await App.Db.GetSetsForLogAsync(log.Id)).Count;
-            }
-
-            LastTitle.Text = $"Workout, {session.Date:ddd MMM d}";
-            LastExercises.Text = string.Join(", ", names);
-
-            var meta = $"{names.Count} exercises, {totalSets} sets";
-            if (session.DurationSeconds > 0)
-                meta += $", {HistoryView.FormatDuration(session.DurationSeconds)}";
-            LastMeta.Text = meta;
+            LastCard.IsVisible = false;
+            LastEmpty.IsVisible = true;
+            return;
         }
+
+        // 3 queries however many exercises the workout had (it used to be 2 per exercise)
+        var logs = (await App.Db.GetLogsForSessionAsync(session.Id)).OrderBy(l => l.Id).ToList();
+        var sets = await App.Db.GetSetsForLogsAsync(logs.Select(l => l.Id).ToList());
+        var exerciseNames = (await App.Db.GetExercisesAsync())
+            .ToDictionary(e => e.Id, e => e.Name ?? "Unknown exercise");
+
+        var names = logs
+            .Select(l => exerciseNames.TryGetValue(l.ExerciseId, out var n) ? n : "Unknown exercise")
+            .ToList();
+
+        LastTitle.Text = $"Workout, {session.Date:ddd MMM d}";
+        LastExercises.Text = string.Join(", ", names);
+
+        var meta = $"{names.Count} exercises, {sets.Count} sets";
+        if (session.DurationSeconds > 0)
+            meta += $", {HistoryView.FormatDuration(session.DurationSeconds)}";
+        LastMeta.Text = meta;
+
+        // show the card only once it is filled in, so it never flashes empty or stale
+        LastCard.IsVisible = true;
+        LastEmpty.IsVisible = false;
     }
 
     // Segments light up one by one, only the newly earned ones animate.

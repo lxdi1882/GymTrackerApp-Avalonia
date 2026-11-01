@@ -5,6 +5,15 @@
              x:Class="GymTracker.Avalonia.App"
              RequestedThemeVariant="Dark">
 
+    <Application.Resources>
+        <!-- M3 motion curves. Things entering decelerate, things leaving accelerate,
+             and plain state changes (colors, fills) use the standard curve.
+             A transition with no Easing is LINEAR in Avalonia, which is what reads as stutter. -->
+        <SplineEasing x:Key="EmphasizedDecelerate" X1="0.05" Y1="0.7" X2="0.1" Y2="1" />
+        <SplineEasing x:Key="EmphasizedAccelerate" X1="0.3" Y1="0" X2="0.8" Y2="0.15" />
+        <SplineEasing x:Key="StandardEasing" X1="0.2" Y1="0" X2="0" Y2="1" />
+    </Application.Resources>
+
     <Application.Styles>
         <!-- Material 3 replaces FluentTheme. Do NOT add <FluentTheme /> back. -->
         <m3:MaterialTheme SeedColor="#C8F23D" SchemeVariant="Vibrant" />
@@ -39,7 +48,8 @@
             <Setter Property="Background" Value="{DynamicResource Md3SurfaceContainerHighestBrush}" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.25" />
+                    <BrushTransition Property="Background" Duration="0:0:0.25"
+                                     Easing="{StaticResource StandardEasing}" />
                 </Transitions>
             </Setter>
         </Style>
@@ -60,9 +70,10 @@
         <Style Selector="Border.page">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.30" Easing="CubicEaseOut" />
-                    <TransformOperationsTransition Property="RenderTransform"
-                                                   Duration="0:0:0.30" Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.30"
+                                      Easing="{StaticResource EmphasizedDecelerate}" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.30"
+                                                   Easing="{StaticResource EmphasizedDecelerate}" />
                 </Transitions>
             </Setter>
         </Style>
@@ -75,9 +86,10 @@
         <Style Selector="m3c|DialogPane.dialog">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.22" Easing="CubicEaseOut" />
-                    <TransformOperationsTransition Property="RenderTransform"
-                                                   Duration="0:0:0.22" Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.22"
+                                      Easing="{StaticResource EmphasizedDecelerate}" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22"
+                                                   Easing="{StaticResource EmphasizedDecelerate}" />
                 </Transitions>
             </Setter>
         </Style>
@@ -90,15 +102,55 @@
         <Style Selector="Border.sheet">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.28" Easing="CubicEaseOut" />
-                    <TransformOperationsTransition Property="RenderTransform"
-                                                   Duration="0:0:0.28" Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.28"
+                                      Easing="{StaticResource EmphasizedDecelerate}" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28"
+                                                   Easing="{StaticResource EmphasizedDecelerate}" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Border.sheet.off">
             <Setter Property="Opacity" Value="0" />
             <Setter Property="RenderTransform" Value="translateY(48px)" />
+        </Style>
+
+        <!-- Inline panel (Workout "Save N exercises?"): fades + rises in instead of snapping.
+             Show it with the "off" pose first, then drop "off" a frame later. -->
+        <Style Selector="Border.pop">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25"
+                                      Easing="{StaticResource EmphasizedDecelerate}" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25"
+                                                   Easing="{StaticResource EmphasizedDecelerate}" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.pop.off">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="translateY(12px)" />
+        </Style>
+
+        <!-- Busy bar: a thin primary pill that pulses while async work runs.
+             Only the "busy" class starts the animation, so a hidden bar costs nothing. -->
+        <Style Selector="Border.busybar">
+            <Setter Property="Height" Value="4" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Background" Value="{DynamicResource Md3PrimaryBrush}" />
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="Border.busybar.busy">
+            <Style.Animations>
+                <Animation Duration="0:0:0.8" Easing="{StaticResource StandardEasing}"
+                           IterationCount="Infinite" PlaybackDirection="Alternate">
+                    <KeyFrame Cue="0%" x:SetterTargetType="Control">
+                        <Setter Property="Opacity" Value="0.25" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%" x:SetterTargetType="Control">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
         </Style>
 
         <!-- Picker list row, highlighted when selected -->
@@ -109,10 +161,13 @@
             <Setter Property="Background" Value="{DynamicResource Md3SurfaceContainerHighestBrush}" />
         </Style>
 
-        <!-- Expanding content (History accordions): opacity only, no transform animators needed -->
-        <Style Selector=".reveal.open">
+        <!-- Expanding content (Exercises groups): opacity only, no transform animators needed.
+             Needs "anim" as well as "open": groups are rebuilt on every search keystroke, and
+             without "anim" every rebuilt group replayed this fade and the list blinked while typing.
+             "anim" is only set when you tap a group yourself. -->
+        <Style Selector="ItemsControl.reveal.open.anim">
             <Style.Animations>
-                <Animation Duration="0:0:0.24" Easing="CubicEaseOut" FillMode="Forward">
+                <Animation Duration="0:0:0.24" Easing="{StaticResource EmphasizedDecelerate}" FillMode="Forward">
                     <KeyFrame Cue="0%" x:SetterTargetType="Control">
                         <Setter Property="Opacity" Value="0" />
                     </KeyFrame>
@@ -121,6 +176,19 @@
                     </KeyFrame>
                 </Animation>
             </Style.Animations>
+        </Style>
+
+        <!-- Collapsing a group: rows fade out first (quick, accelerating), then get removed -->
+        <Style Selector="ItemsControl.reveal">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.16"
+                                      Easing="{StaticResource EmphasizedAccelerate}" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="ItemsControl.reveal.closing">
+            <Setter Property="Opacity" Value="0" />
         </Style>
     </Application.Styles>
 </Application>

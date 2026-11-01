@@ -17,6 +17,9 @@ public class ExerciseGroup : INotifyPropertyChanged
     private static readonly List<Exercise> None = new();
 
     private bool _isExpanded;
+    private bool _closing;      // true while the rows fade out, they stay in place until it's done
+    private int _closeToken;    // lets a late close step notice the group was reopened
+
     public bool IsExpanded
     {
         get => _isExpanded;
@@ -24,6 +27,14 @@ public class ExerciseGroup : INotifyPropertyChanged
         {
             if (_isExpanded == value) return;
             _isExpanded = value;
+
+            if (value)
+            {
+                _closeToken++;      // reopened: cancel any fade-out that is still finishing
+                _closing = false;
+                OnPropertyChanged(nameof(IsClosing));
+            }
+
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsCollapsed));
             OnPropertyChanged(nameof(VisibleItems));
@@ -32,8 +43,44 @@ public class ExerciseGroup : INotifyPropertyChanged
 
     public bool IsCollapsed => !IsExpanded;
 
-    // rows are only created once the group is opened
-    public List<Exercise> VisibleItems => IsExpanded ? Items : None;
+    // Only true once the user taps the group, so the fade-in plays for taps but not when
+    // groups are rebuilt (search typing, refresh). Set it BEFORE IsExpanded.
+    private bool _animate;
+    public bool Animate
+    {
+        get => _animate;
+        set
+        {
+            if (_animate == value) return;
+            _animate = value;
+            OnPropertyChanged();
+        }
+    }
+
+    // drives the "closing" fade-out style in App.axaml
+    public bool IsClosing => _closing;
+
+    // rows are only created once the group is opened (and kept while they fade out)
+    public List<Exercise> VisibleItems => IsExpanded || _closing ? Items : None;
+
+    // Collapse with a quick fade instead of the rows vanishing in one frame.
+    public async Task CollapseAsync()
+    {
+        if (!_isExpanded) return;
+
+        int token = ++_closeToken;
+        _closing = true;
+        OnPropertyChanged(nameof(IsClosing));
+
+        IsExpanded = false;   // the chevron flips right away, the rows stay because _closing is true
+
+        await Task.Delay(180);   // a bit longer than the 0.16s fade in App.axaml
+        if (token != _closeToken) return;
+
+        _closing = false;
+        OnPropertyChanged(nameof(IsClosing));
+        OnPropertyChanged(nameof(VisibleItems));
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name = null)
@@ -51,6 +98,11 @@ public partial class ExercisesView : UserControl
     private Exercise? _editing;          // null = adding a new exercise
     private bool _confirmDelete;
     private bool _closing;
+    private bool _busy;                 // a save or delete is running, so a second tap can't repeat it
+    private bool _deleteChecking;       // the "is it used?" lookup before arming the delete button
+    private int _armToken;              // lets an old "disarm" timer notice the button was re-armed
+    private Button? _progressButton;    // the button currently showing "Saving..." / "Deleting..."
+    private object? _progressOriginal;  // and the label to put back
 
     public ExercisesView()
     {
@@ -130,17 +182,24 @@ public partial class ExercisesView : UserControl
         CountText.Text = $"{_all.Count} exercise{(_all.Count == 1 ? "" : "s")}, tap a group to open it";
     }
 
-    private void OnToggleGroup(object? sender, RoutedEventArgs e)
+    private async void OnToggleGroup(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.DataContext is not ExerciseGroup g) return;
 
-        g.IsExpanded = !g.IsExpanded;
-
         // while searching, groups are opened automatically, so don't remember those
-        if ((SearchBox.Text?.Trim().Length ?? 0) > 0) return;
+        bool remember = (SearchBox.Text?.Trim().Length ?? 0) == 0;
 
-        if (g.IsExpanded) _expanded.Add(g.Name);
-        else _expanded.Remove(g.Name);
+        if (g.IsExpanded)
+        {
+            if (remember) _expanded.Remove(g.Name);
+            await g.CollapseAsync();
+        }
+        else
+        {
+            if (remember) _expanded.Add(g.Name);
+            g.Animate = true;   // before IsExpanded, so both classes are there when the fade starts
+            g.IsExpanded = true;
+        }
     }
 
     private void OnEditExercise(object? sender, RoutedEventArgs e)
@@ -155,6 +214,7 @@ public partial class ExercisesView : UserControl
 
         _editing = exercise;
         _confirmDelete = false;
+        _armToken++;   // any old "disarm" timer is now stale
 
         FormPanel.Title = exercise is null ? "New exercise" : "Edit exercise";
         SaveButton.Content = exercise is null ? "Save exercise" : "Save changes";
@@ -182,10 +242,11 @@ public partial class ExercisesView : UserControl
     // plays the exit animation, then hides the dialog
     private async Task CloseFormAsync()
     {
-        if (!FormPanel.IsVisible || _closing) return;
+        if (!FormPanel.IsVisible || _closing || _busy) return;   // can't dismiss mid-save
 
         _closing = true;
         _confirmDelete = false;
+        _armToken++;
 
         Scrim.IsOpen = false;
         FormPanel.Classes.Set("off", true);   // transitions back out
@@ -200,6 +261,8 @@ public partial class ExercisesView : UserControl
 
     private async Task SaveAsync()
     {
+        if (_busy) return;   // a second tap must never save the exercise twice
+
         string name = NameBox.Text?.Trim() ?? "";
 
         if (name.Length == 0)
@@ -229,13 +292,23 @@ public partial class ExercisesView : UserControl
             return;
         }
 
+        // no awaits between the _busy check above and this lock, so two taps can't both get through
+        LockForm(true);
+
+        var editing = _editing;
+        string oldName = editing?.Name ?? "";
+        string oldGroup = editing?.MuscleGroup ?? "";
+        string oldSubTarget = editing?.SubTarget ?? "";
+        bool written = false;
+
         try
         {
             string subTarget = SubTargetBox.Text?.Trim() ?? "";
+            Task write;
 
-            if (_editing is null)
+            if (editing is null)
             {
-                await App.Db.AddExerciseAsync(new Exercise
+                write = App.Db.AddExerciseAsync(new Exercise
                 {
                     Name = name,
                     MuscleGroup = group,
@@ -245,34 +318,61 @@ public partial class ExercisesView : UserControl
             }
             else
             {
-                _editing.Name = name;
-                _editing.MuscleGroup = group;
-                _editing.SubTarget = subTarget;
-                await App.Db.UpdateExerciseAsync(_editing);
+                editing.Name = name;
+                editing.MuscleGroup = group;
+                editing.SubTarget = subTarget;
+                write = App.Db.UpdateExerciseAsync(editing);
             }
+
+            // only show "Saving..." if this one is slow, so fast saves don't flash it
+            if (await Task.WhenAny(write, Task.Delay(150)) != write)
+                ShowFormProgress(SaveButton, "Saving...");
+
+            await write;
+            written = true;
 
             _expanded.Add(group);   // open the group so you can see what you just saved
 
+            LockForm(false);
             await CloseFormAsync();
             await RefreshAsync();
         }
         catch
         {
+            // if the write itself failed, put the in-memory exercise back the way it was
+            if (!written && editing is not null)
+            {
+                editing.Name = oldName;
+                editing.MuscleGroup = oldGroup;
+                editing.SubTarget = oldSubTarget;
+            }
+
+            LockForm(false);
             ShowError("Couldn't save the exercise. Try again.");
         }
     }
 
     private async Task DeleteAsync()
     {
-        if (_editing is null) return;
+        if (_editing is null || _busy || _deleteChecking) return;
 
-        if (IsInCurrentWorkout(_editing))
+        var exercise = _editing;
+
+        if (IsInCurrentWorkout(exercise))
         {
             ShowError("This exercise is in your current workout. Finish the workout before deleting it.");
             return;
         }
 
-        int uses = await App.Db.CountLogsForExerciseAsync(_editing.Id);
+        // A fast double tap used to slip past the arming step while this lookup was running,
+        // and delete without the "tap again" confirmation. The flag closes that gap.
+        _deleteChecking = true;
+        int uses;
+        try { uses = await App.Db.CountLogsForExerciseAsync(exercise.Id); }
+        finally { _deleteChecking = false; }
+
+        if (!ReferenceEquals(_editing, exercise)) return;   // the form was closed meanwhile
+
         if (uses > 0)
         {
             ShowError($"Logged in {uses} workout{(uses == 1 ? "" : "s")}, so deleting it would break your history. " +
@@ -280,31 +380,79 @@ public partial class ExercisesView : UserControl
             return;
         }
 
-        // first tap arms the button, second tap deletes (resets after 4s)
+        // first tap arms the button, second tap deletes (disarms itself after 4s)
         if (!_confirmDelete)
         {
             _confirmDelete = true;
             DeleteButton.Content = "Tap again to delete";
-            await Task.Delay(4000);
-
-            if (_confirmDelete)
-            {
-                _confirmDelete = false;
-                DeleteButton.Content = "Delete exercise";
-            }
+            _ = DisarmDeleteAsync(++_armToken);   // not awaited, so the second tap isn't stuck behind it
             return;
         }
 
+        LockForm(true);
+
         try
         {
-            await App.Db.DeleteExerciseAsync(_editing);
+            var delete = App.Db.DeleteExerciseAsync(exercise);
+
+            // only show "Deleting..." if this one is slow, so fast deletes don't flash it
+            if (await Task.WhenAny(delete, Task.Delay(150)) != delete)
+                ShowFormProgress(DeleteButton, "Deleting...");
+
+            await delete;
+
+            LockForm(false);
             await CloseFormAsync();
             await RefreshAsync();
         }
         catch
         {
+            LockForm(false);   // still armed, so one more tap retries
             ShowError("Couldn't delete the exercise. Try again.");
         }
+    }
+
+    private async Task DisarmDeleteAsync(int token)
+    {
+        await Task.Delay(4000);
+
+        // stale timer (form closed, reopened or re-armed since) or a delete is already running
+        if (token != _armToken || !_confirmDelete || _busy) return;
+
+        _confirmDelete = false;
+        DeleteButton.Content = "Delete exercise";
+    }
+
+    // Disables the dialog buttons while a save or delete runs.
+    private void LockForm(bool locked)
+    {
+        _busy = locked;
+        SaveButton.IsEnabled = !locked;
+        CancelButton.IsEnabled = !locked;
+        DeleteButton.IsEnabled = !locked;
+
+        if (!locked) ShowFormProgress(null, null);
+    }
+
+    // Swaps one button's label for the progress text and pulses the busy bar. null clears it.
+    private void ShowFormProgress(Button? button, string? text)
+    {
+        if (_progressButton is not null)
+        {
+            _progressButton.Content = _progressOriginal;   // put the old label back first
+            _progressButton = null;
+        }
+
+        if (button is null || text is null)
+        {
+            FormBusy.Classes.Set("busy", false);
+            return;
+        }
+
+        _progressButton = button;
+        _progressOriginal = button.Content;
+        button.Content = text;
+        FormBusy.Classes.Set("busy", true);
     }
 
     private static bool IsInCurrentWorkout(Exercise exercise)
