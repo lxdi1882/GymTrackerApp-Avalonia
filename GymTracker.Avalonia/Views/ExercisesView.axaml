@@ -55,6 +55,8 @@
                                 </Border>
 
                                 <ItemsControl Classes="reveal" Classes.open="{Binding IsExpanded}"
+                                              Classes.anim="{Binding Animate}"
+                                              Classes.closing="{Binding IsClosing}"
                                               ItemsSource="{Binding VisibleItems}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="models:Exercise">
@@ -85,7 +87,8 @@
         <!-- Add / edit dialog (M3 DialogPane over an M3 Scrim) -->
         <m3c:Scrim x:Name="Scrim" IsOpen="False" />
 
-        <m3c:DialogPane x:Name="FormPanel" Classes="dialog" Title="New exercise"
+        <!-- "off" from the start, so the very first open animates in too (not only later ones) -->
+        <m3c:DialogPane x:Name="FormPanel" Classes="dialog off" Title="New exercise"
                         IsVisible="False" Margin="24" MaxWidth="440"
                         HorizontalAlignment="Stretch" VerticalAlignment="Center">
             <StackPanel Spacing="12">
@@ -97,6 +100,8 @@
                            Foreground="{DynamicResource Md3ErrorBrush}" TextWrapping="Wrap" />
                 <Button x:Name="DeleteButton" Classes="text danger" Content="Delete exercise"
                         IsVisible="False" HorizontalAlignment="Left" />
+                <!-- invisible until a save or delete takes long enough to need it -->
+                <Border x:Name="FormBusy" Classes="busybar" />
             </StackPanel>
 
             <m3c:DialogPane.Buttons>

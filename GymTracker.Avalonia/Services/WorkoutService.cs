@@ -49,6 +49,8 @@ public class WorkoutService
     
  public bool AddSet(Exercise exercise, double weight, int reps)
 {
+    if (_finishing) return false;   // the workout is being saved right now
+
     if (!HasWorkout)
         _runningSinceUtc = DateTime.UtcNow;   // the first set starts the clock
 
@@ -78,6 +80,8 @@ public class WorkoutService
  
 public void RemoveSet(string exerciseName, SetEntry set)
 {
+    if (_finishing) return;   // the workout is being saved right now
+
     if (!workoutInProgress.TryGetValue(exerciseName, out var entry))
         return;
  
@@ -208,47 +212,45 @@ public void RemoveSet(string exerciseName, SetEntry set)
     }
  
 
+    // true while a save is running; the UI uses it to lock the screen
+    public bool IsFinishing => _finishing;
+    private bool _finishing;
+
     public async Task<int> FinishWorkoutAsync(int durationSeconds = 0)
-{
-    var session = new WorkoutSession
     {
-        Date = DateTime.Now,
-        DurationSeconds = durationSeconds
-    };
+        // a second tap while the first save is still running must not save the workout twice
+        if (_finishing || !HasWorkout) return 0;
+        _finishing = true;
 
-        await _db.AddWorkoutSessionAsync(session);
-
-        foreach (var entry in workoutInProgress.Values)
+        try
         {
-            var exercise = await _db.GetExerciseByNameAsync(entry.Exercise.Name);
-
-            var log = new ExerciseLog
+            var session = new WorkoutSession
             {
-                WorkoutSessionId = session.Id,
-                ExerciseId = exercise.Id
+                Date = DateTime.Now,
+                DurationSeconds = durationSeconds
             };
 
-            await _db.AddExerciseLogAsync(log);
-            foreach (var set in entry.Sets)
-            {
-                set.ExerciseLogId = log.Id;
-                await _db.AddSetEntryAsync(set);
-                System.Diagnostics.Debug.WriteLine($"Saved set: LogId={set.ExerciseLogId}, Weight={set.Weight}, Reps={set.Reps}, SetId={set.Id}");
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"Saved log: SessionId={log.WorkoutSessionId}, ExerciseId={log.ExerciseId}, LogId={log.Id}");
+            // snapshot, so nothing can change what's being written while the save runs
+            var logs = workoutInProgress.Values
+                .Select(e => (ExerciseId: e.Exercise.Id, Sets: e.Sets.ToList()))
+                .ToList();
+
+            // Wait for queued draft writes first, so none of them can land after the
+            // transaction (which also deletes the draft) and bring the workout back.
+            await _saveLock.WaitAsync();
+            try { await _db.SaveWorkoutAsync(session, logs); }
+            finally { _saveLock.Release(); }
+
+            // only reached if the whole save worked, so a failed finish keeps the workout and its draft
+            int count = logs.Count;
+            workoutInProgress.Clear();
+            ResetTimer();
+            return count;
         }
-
-        int count = workoutInProgress.Count;
-        workoutInProgress.Clear();
-        ResetTimer();
-
-        // only reached if every save above worked, so a failed finish keeps the draft
-        await _saveLock.WaitAsync();
-        try { await _db.ClearDraftAsync(); }
-        finally { _saveLock.Release(); }
-
-        return count;
+        finally
+        {
+            _finishing = false;
+        }
     }
     
     // public int FinishWorkout()

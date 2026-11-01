@@ -25,7 +25,7 @@
                 </Grid>
 
                 <!-- Inline finish confirmation -->
-                <Border x:Name="ConfirmPanel" IsVisible="False" CornerRadius="16" Padding="20"
+                <Border x:Name="ConfirmPanel" Classes="pop off" IsVisible="False" CornerRadius="16" Padding="20"
                         Background="{DynamicResource Md3SurfaceContainerBrush}">
                     <StackPanel Spacing="16">
                         <TextBlock x:Name="ConfirmText" FontSize="16" FontWeight="SemiBold" />
@@ -35,6 +35,8 @@
                             <Button x:Name="SaveButton" Grid.Column="2" Content="Save workout"
                                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                         </Grid>
+                        <!-- invisible until a save takes long enough to need it (see OnSaveClick) -->
+                        <Border x:Name="SaveBusy" Classes="busybar" />
                     </StackPanel>
                 </Border>
 
@@ -119,7 +121,7 @@
         <!-- Exercise picker: M3 modal bottom sheet over an M3 Scrim -->
         <m3c:Scrim x:Name="PickerScrim" IsOpen="False" />
 
-        <Border x:Name="PickerPanel" Classes="sheet" IsVisible="False"
+        <Border x:Name="PickerPanel" Classes="sheet off" IsVisible="False"
                 VerticalAlignment="Bottom" HorizontalAlignment="Stretch" MaxWidth="640"
                 CornerRadius="28,28,0,0" Padding="16,12,16,16"
                 Background="{DynamicResource Md3SurfaceContainerBrush}">

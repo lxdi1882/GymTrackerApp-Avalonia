@@ -30,14 +30,30 @@ private async Task Init()
         await conn.CreateTableAsync<ExerciseLog>();
         await conn.CreateTableAsync<SetEntry>();
         await conn.CreateTableAsync<AppSetting>();
+        await SeedAsync(conn);   // seeded before anyone can use the db, so no screen ever sees an empty exercise list
 
-        _db = conn;   // only visible to other callers once the tables exist
+        _db = conn;   // only visible to other callers once the tables exist and are seeded
     }
     finally
     {
         _initLock.Release();
     }
 }
+
+    private static async Task SeedAsync(SQLiteAsyncConnection conn)
+    {
+        if (await conn.Table<Exercise>().CountAsync() > 0)
+            return; // already seeded, don't duplicate
+
+        var seed = ExerciseLibrary.All.Select(ex => new Exercise
+        {
+            Name = ex.Name,
+            MuscleGroup = ex.MuscleGroup,
+            SubTarget = ex.SubTarget
+        }).ToList();
+
+        await conn.InsertAllAsync(seed);   // one transaction instead of one disk write per exercise
+    }
 
     public async Task<List<Exercise>> GetExercisesAsync()
     {
@@ -51,25 +67,36 @@ private async Task Init()
         return await _db.InsertAsync(exercise);
     }
     
-    public async Task SeedExercisesAsync()
+    // Seeding now happens inside Init(), so this just opens the db early (App calls it at startup).
+    public Task SeedExercisesAsync() => Init();
+
+    // Saves a whole workout in one transaction: all of it lands, or none of it does.
+    // The draft is cleared in the same transaction, so a crash can never leave a saved
+    // workout AND a draft that would be restored (and saved again) on the next launch.
+    public async Task SaveWorkoutAsync(WorkoutSession session, List<(int ExerciseId, List<SetEntry> Sets)> logs)
     {
         await Init();
 
-        var existing = await _db.Table<Exercise>().ToListAsync();
-        if (existing.Count > 0)
-            return; // already seeded, don't duplicate
-
-        foreach (var ex in ExerciseLibrary.All)
+        await _db.RunInTransactionAsync(conn =>
         {
-            await _db.InsertAsync(new Exercise
+            conn.Insert(session);
+
+            foreach (var (exerciseId, sets) in logs)
             {
-                Name = ex.Name,
-                MuscleGroup = ex.MuscleGroup,
-                SubTarget = ex.SubTarget
-            });
-        }
+                var log = new ExerciseLog { WorkoutSessionId = session.Id, ExerciseId = exerciseId };
+                conn.Insert(log);
+
+                foreach (var set in sets)
+                {
+                    set.ExerciseLogId = log.Id;
+                    conn.Insert(set);
+                }
+            }
+
+            conn.Delete<AppSetting>(DraftKey);
+        });
     }
-    
+
     public async Task AddWorkoutSessionAsync(WorkoutSession session)
     {
         await Init();
@@ -162,18 +189,18 @@ private async Task Init()
 
 
 
+// one transaction, three statements: a half-deleted workout can't happen
 public async Task DeleteSessionAsync(int sessionId)
 {
     await Init();
- 
-    var logs = await GetLogsForSessionAsync(sessionId);
-    foreach (var log in logs)
+
+    await _db.RunInTransactionAsync(conn =>
     {
-        await _db.Table<SetEntry>().Where(s => s.ExerciseLogId == log.Id).DeleteAsync();
-        await _db.DeleteAsync(log);
-    }
- 
-    await _db.DeleteAsync<WorkoutSession>(sessionId);
+        conn.Execute("DELETE FROM SetEntry WHERE ExerciseLogId IN " +
+                     "(SELECT Id FROM ExerciseLog WHERE WorkoutSessionId = ?)", sessionId);
+        conn.Execute("DELETE FROM ExerciseLog WHERE WorkoutSessionId = ?", sessionId);
+        conn.Execute("DELETE FROM WorkoutSession WHERE Id = ?", sessionId);
+    });
 }
  
 public async Task UpdateExerciseAsync(Exercise exercise)
@@ -200,24 +227,57 @@ public async Task<List<(Exercise Exercise, SetEntry Set, DateTime Date)>> GetRec
 {
     await Init();
 
+    var prs = new List<(Exercise Exercise, SetEntry Set, DateTime Date)>();
     var cutoff = DateTime.Now.AddDays(-daysBack);
-    var sessions = await _db.Table<WorkoutSession>()
-        .Where(s => s.Date >= cutoff)
+
+    // The old version ran queries inside nested loops, and the Home tab runs this every time
+    // it opens, so it got slower with every workout you logged. This one does 5 queries total,
+    // no matter how much history there is.
+
+    // sessions are tiny rows (no exercises or sets), so reading them all is cheap
+    var allSessions = await _db.Table<WorkoutSession>().ToListAsync();
+    var recent = allSessions.Where(x => x.Date >= cutoff).OrderBy(x => x.Date).ToList();
+    if (recent.Count == 0) return prs;
+
+    var recentLogs = await GetLogsForSessionsAsync(recent.Select(x => x.Id).ToList());
+    if (recentLogs.Count == 0) return prs;
+
+    // every log and set ever logged for the exercises trained this week (that's the "previous best" data)
+    var exerciseIds = recentLogs.Select(l => l.ExerciseId).Distinct().ToList();
+    var historyLogs = await _db.Table<ExerciseLog>()
+        .Where(l => exerciseIds.Contains(l.ExerciseId))
         .ToListAsync();
 
-    var prs = new List<(Exercise, SetEntry, DateTime)>();
+    var idList = string.Join(",", exerciseIds);   // ints from our own table, safe to inline
+    var historySets = await _db.QueryAsync<SetEntry>(
+        "SELECT st.* FROM SetEntry st JOIN ExerciseLog l ON l.Id = st.ExerciseLogId " +
+        $"WHERE l.ExerciseId IN ({idList})");
 
-    foreach (var session in sessions)
+    var exercises = (await GetExercisesAsync()).ToDictionary(e => e.Id);
+
+    var dateBySession = allSessions.ToDictionary(x => x.Id, x => x.Date);
+    var logsByExercise = historyLogs.ToLookup(l => l.ExerciseId);
+    var setsByLog = historySets.ToLookup(st => st.ExerciseLogId);
+
+    foreach (var session in recent)
     {
-        var logs = await GetLogsForSessionAsync(session.Id);
-
-        foreach (var log in logs)
+        foreach (var log in recentLogs.Where(l => l.WorkoutSessionId == session.Id).OrderBy(l => l.Id))
         {
-            var exercise = await GetExerciseByIdAsync(log.ExerciseId);
-            var sets = await GetSetsForLogAsync(log.Id);
-            double previousBest = await GetBestWeightBeforeDateAsync(log.ExerciseId, session.Date);
+            if (!exercises.TryGetValue(log.ExerciseId, out var exercise))
+                continue;
 
-            foreach (var set in sets)
+            // best weight lifted for this exercise in sessions before this one
+            double previousBest = 0;
+            foreach (var other in logsByExercise[log.ExerciseId])
+            {
+                if (!dateBySession.TryGetValue(other.WorkoutSessionId, out var otherDate) || otherDate >= session.Date)
+                    continue;
+
+                foreach (var old in setsByLog[other.Id])
+                    previousBest = Math.Max(previousBest, old.Weight);
+            }
+
+            foreach (var set in setsByLog[log.Id].OrderBy(st => st.Id))
             {
                 if (set.Weight > previousBest)
                 {
@@ -229,32 +289,6 @@ public async Task<List<(Exercise Exercise, SetEntry Set, DateTime Date)>> GetRec
     }
 
     return prs;
-}
-
-private async Task<double> GetBestWeightBeforeDateAsync(int exerciseId, DateTime beforeDate)
-{
-    await Init();
-
-    var logs = await _db.Table<ExerciseLog>()
-        .Where(l => l.ExerciseId == exerciseId)
-        .ToListAsync();
-
-    double best = 0;
-
-    foreach (var log in logs)
-    {
-        var session = await _db.Table<WorkoutSession>()
-            .FirstOrDefaultAsync(s => s.Id == log.WorkoutSessionId);
-
-        if (session == null || session.Date >= beforeDate)
-            continue;
-
-        var sets = await GetSetsForLogAsync(log.Id);
-        if (sets.Any())
-            best = Math.Max(best, sets.Max(s => s.Weight));
-    }
-
-    return best;
 }
 
 public async Task<int> GetWeeklyGoalAsync()

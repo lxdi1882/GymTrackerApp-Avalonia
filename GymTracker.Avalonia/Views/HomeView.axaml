@@ -39,7 +39,9 @@
             <!-- Recent PRs -->
             <StackPanel Spacing="8">
                 <TextBlock Classes="section" Text="Personal records" />
-                <TextBlock x:Name="PrEmpty" Classes="muted" Text="No new records this week. Go set one." />
+                <!-- hidden until the first load says whether it's really empty, so no wrong flash -->
+                <TextBlock x:Name="PrEmpty" Classes="muted" IsVisible="False"
+                           Text="No new records this week. Go set one." />
                 <ItemsControl x:Name="PrList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:PrDisplay">
@@ -60,7 +62,8 @@
             <!-- Last workout: the one card on the page -->
             <StackPanel Spacing="12">
                 <TextBlock Classes="section" Text="Last workout" />
-                <TextBlock x:Name="LastEmpty" Classes="muted" Text="Nothing logged yet. Start your first workout." />
+                <TextBlock x:Name="LastEmpty" Classes="muted" IsVisible="False"
+                           Text="Nothing logged yet. Start your first workout." />
                 <Border x:Name="LastCard" IsVisible="False" CornerRadius="16" Padding="20"
                         Background="{DynamicResource Md3SurfaceContainerBrush}">
                     <StackPanel Spacing="6">

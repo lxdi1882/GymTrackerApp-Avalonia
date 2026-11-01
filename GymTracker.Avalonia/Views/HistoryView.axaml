@@ -122,10 +122,15 @@
         <!-- Delete confirmation (M3 DialogPane over an M3 Scrim) -->
         <m3c:Scrim x:Name="Scrim" IsOpen="False" />
 
-        <m3c:DialogPane x:Name="ConfirmPanel" Classes="dialog" Title="Delete workout?"
+        <!-- "off" from the start, so the very first open animates in too (not only later ones) -->
+        <m3c:DialogPane x:Name="ConfirmPanel" Classes="dialog off" Title="Delete workout?"
                         IsVisible="False" Margin="24" MaxWidth="440"
                         HorizontalAlignment="Stretch" VerticalAlignment="Center">
-            <TextBlock x:Name="ConfirmText" TextWrapping="Wrap" />
+            <StackPanel Spacing="16">
+                <TextBlock x:Name="ConfirmText" TextWrapping="Wrap" />
+                <!-- invisible until a delete takes long enough to need it -->
+                <Border x:Name="DeleteBusy" Classes="busybar" />
+            </StackPanel>
 
             <m3c:DialogPane.Buttons>
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">

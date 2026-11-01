@@ -50,6 +50,9 @@ public partial class WorkoutView : UserControl
     private Exercise? _selected;
     private string? _openGroup;      // null = showing the muscle group list
     private bool _pickerClosing;
+    private bool _saving;            // true from the Save tap until the save has finished or failed
+    private int _confirmToken;       // lets a late close step notice that the panel was reopened
+    private int _addedToken;         // lets an old "Set N added" label timer notice a newer tap
 
     public WorkoutView()
     {
@@ -58,10 +61,11 @@ public partial class WorkoutView : UserControl
         AddSetButton.Click += (_, _) => AddSet();
         RepsBox.KeyDown += (_, e) => { if (e.Key == Key.Enter) AddSet(); };
         FinishButton.Click += OnFinishClick;
-        CancelButton.Click += (_, _) => ConfirmPanel.IsVisible = false;
+        CancelButton.Click += async (_, _) => await CloseConfirmAsync();
         SaveButton.Click += OnSaveClick;
         PauseButton.Click += (_, _) =>
         {
+            if (_saving) return;
             if (App.Workouts.IsTimerRunning) App.Workouts.PauseTimer();
             else App.Workouts.ResumeTimer();
             SyncTimer();
@@ -83,7 +87,8 @@ public partial class WorkoutView : UserControl
             }
         };
 
-        Loaded += async (_, _) => await LoadAsync();
+        // No Loaded handler: MainView calls LoadAsync every time this tab is shown,
+        // so loading here too just did the same work twice at startup.
     }
 
     public async Task LoadAsync()
@@ -242,6 +247,8 @@ public partial class WorkoutView : UserControl
 
     private void AddSet()
     {
+        if (_saving) return;   // the workout is being saved, don't change it underneath
+
         if (_selected is not Exercise exercise)
         {
             ShowError("Choose an exercise first.");
@@ -261,15 +268,33 @@ public partial class WorkoutView : UserControl
         }
 
         ErrorText.IsVisible = false;
-        App.Workouts.AddSet(exercise, weight, reps);   // also starts the timer on the first set
+        if (!App.Workouts.AddSet(exercise, weight, reps)) return;   // also starts the timer on the first set
 
         RepsBox.Text = "";   // keep exercise + weight for the next set
         RepsBox.Focus();
         Render();
+        _ = FlashAddedAsync(exercise);
+    }
+
+    // The new row is usually below the fold on a phone, so confirm on the button itself.
+    private async Task FlashAddedAsync(Exercise exercise)
+    {
+        int token = ++_addedToken;
+
+        int count = App.Workouts.GetInProgress()
+            .FirstOrDefault(x => x.Exercise.Id == exercise.Id)?.Sets.Count ?? 0;
+
+        AddSetButton.Content = count > 0 ? $"Set {count} added" : "Added";
+
+        await Task.Delay(1000);
+        if (token == _addedToken)   // a newer tap owns the label now otherwise
+            AddSetButton.Content = "Add set";
     }
 
     private void OnDeleteSet(object? sender, RoutedEventArgs e)
     {
+        if (_saving) return;
+
         if ((sender as Control)?.DataContext is SetRow row)
         {
             App.Workouts.RemoveSet(row.ExerciseName, row.Set);
@@ -283,29 +308,87 @@ public partial class WorkoutView : UserControl
         int sets = entries.Sum(x => x.Sets.Count);
         ConfirmText.Text = $"Save {entries.Count} exercise{(entries.Count == 1 ? "" : "s")}, " +
                            $"{sets} set{(sets == 1 ? "" : "s")}?";
-        ConfirmPanel.IsVisible = true;
+        OpenConfirm();
     }
 
     private async void OnSaveClick(object? sender, RoutedEventArgs e)
     {
+        if (_saving) return;   // a second tap must never start a second save
+
         int seconds = (int)App.Workouts.ElapsedSeconds;
+        LockForSave(true);
 
         try
         {
-            await App.Workouts.FinishWorkoutAsync(seconds);
+            var save = App.Workouts.FinishWorkoutAsync(seconds);
+
+            // Saves are usually instant, so only show "Saving..." if this one is slow.
+            // That way a fast save never flashes a spinner for a single frame.
+            if (await Task.WhenAny(save, Task.Delay(150)) != save)
+                ShowSaveProgress(true);
+
+            await save;
         }
         catch
         {
+            LockForSave(false);
             ShowError("Couldn't save the workout. Try again.");
-            ConfirmPanel.IsVisible = false;
+            await CloseConfirmAsync();
             return;
         }
 
+        LockForSave(false);
         WeightBox.Text = "";
         RepsBox.Text = "";
-        ConfirmPanel.IsVisible = false;
-        Render();   // nothing in progress anymore, so this stops and resets the timer
+        Render();   // nothing in progress anymore: stops/resets the timer and closes the panel
         WorkoutFinished?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Disables everything that could change or re-save the workout while the save runs.
+    private void LockForSave(bool locked)
+    {
+        _saving = locked;
+
+        SaveButton.IsEnabled = !locked;
+        CancelButton.IsEnabled = !locked;
+        FinishButton.IsEnabled = !locked && App.Workouts.HasWorkout;
+        AddSetButton.IsEnabled = !locked;
+        PauseButton.IsEnabled = !locked;
+
+        if (!locked) ShowSaveProgress(false);
+    }
+
+    private void ShowSaveProgress(bool on)
+    {
+        SaveButton.Content = on ? "Saving..." : "Save workout";
+        SaveBusy.Classes.Set("busy", on);
+    }
+
+    // The finish panel fades + rises in and out (Border.pop in App.axaml) instead of snapping.
+    private async void OpenConfirm()
+    {
+        int token = ++_confirmToken;
+        if (ConfirmPanel.IsVisible && !ConfirmPanel.Classes.Contains("off")) return;   // already open
+
+        ConfirmPanel.Classes.Set("off", true);
+        ConfirmPanel.IsVisible = true;
+
+        await Task.Delay(16);                      // let the "off" pose render first
+        if (token != _confirmToken) return;        // closed again in the meantime
+        ConfirmPanel.Classes.Set("off", false);
+    }
+
+    private async Task CloseConfirmAsync()
+    {
+        if (!ConfirmPanel.IsVisible) return;
+
+        int token = ++_confirmToken;
+        ConfirmPanel.Classes.Set("off", true);
+
+        await Task.Delay(260);                     // a bit longer than the 0.25s transition in App.axaml
+        if (token != _confirmToken) return;        // reopened in the meantime
+
+        ConfirmPanel.IsVisible = false;
     }
 
     private void Render()
@@ -326,10 +409,10 @@ public partial class WorkoutView : UserControl
 
         BlockList.ItemsSource = blocks;
         EmptyText.IsVisible = blocks.Count == 0;
-        FinishButton.IsEnabled = blocks.Count > 0;
+        FinishButton.IsEnabled = blocks.Count > 0 && !_saving;
 
         if (blocks.Count == 0)
-            ConfirmPanel.IsVisible = false;
+            _ = CloseConfirmAsync();
 
         SyncTimer();
     }
